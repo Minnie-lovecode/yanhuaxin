@@ -280,6 +280,27 @@
     <div class="foot-pad"></div>
   </section>
 
+  <!-- 2b 朋友开场 · 帮 TA 放烟花（点开链接直达） -->
+  <section class="screen" id="sc-guestshow">
+    <div class="stars"></div>
+    <div class="confetti"></div>
+    <div class="fwlayer" id="fw-guest" style="pointer-events:auto;cursor:pointer;"></div>
+    <div class="skyline" data-skyline><span class="neon">2027</span></div>
+    <div class="topbar" style="position:relative;z-index:4;">
+      <span class="tag live">🎆 距离 2027 还有 <b id="cd-guest">--</b></span>
+    </div>
+    <div style="margin-top:215px;position:relative;z-index:4;text-align:center;">
+      <h1><span class="rn">阿蓝</span> 的专属烟花<br>已经点亮</h1>
+      <p class="sub" style="margin-top:12px;">答题帮 TA 燃放更多烟花，<br>或马上生成属于你自己的专属烟花。</p>
+    </div>
+    <div class="grow"></div>
+    <div style="position:relative;z-index:4;">
+      <button class="btn" onclick="go('sc-invite')">答题 · 帮 TA 燃放烟花</button>
+      <button class="btn ghost" style="margin-top:12px;" onclick="becomeCreator()">生成我的专属烟花 ✨</button>
+    </div>
+    <div class="foot-pad"></div>
+  </section>
+
   <!-- 3 取昵称 -->
   <section class="screen" id="sc-name">
     <div class="stars"></div>
@@ -405,7 +426,8 @@
       </div>
       <span class="tag" style="flex:none;">2027</span>
     </div>
-    <p class="sheet-hint">烟花信 v6 · 所有祝福将于 12 月 31 日 24:00 随零点烟花一同开封 🎇</p>
+    <p class="sheet-hint">烟花信 v7 · 所有祝福将于 12 月 31 日 24:00 随零点烟花一同开封 🎇</p>
+    <button class="btn ghost" id="showCreateBtn" style="margin-top:4px;display:none;position:relative;z-index:4;" onclick="becomeCreator()">生成我的专属烟花 ✨</button>
     <div class="foot-pad"></div>
   </section>
 
@@ -473,7 +495,8 @@ function go(id){
   for(var j=0;j<btns.length;j++) btns[j].classList.toggle('on', btns[j].getAttribute('data-t')===id);
   if(id==='sc-result'){ fireResult(); }
   if(id==='sc-quiz'){ renderQ(); }
-  if(id==='sc-show') finale(4, 900);
+  if(id==='sc-guestshow'){ buildGuestShow(); }
+  if(id==='sc-show'){ buildShow(); finale(4, 900); }
 }
 function toast(msg){
   var t = document.getElementById('toast');
@@ -580,9 +603,10 @@ function tick(){
   var mi = pad2(Math.floor(ms/6e4));
   var s = pad2(Math.floor(ms/1e3)%60);
   var txt = d+'天 '+h+':'+mi+':'+s;
-  var a=document.getElementById('cd-invite'), b=document.getElementById('cd-show');
+  var a=document.getElementById('cd-invite'), b=document.getElementById('cd-show'), c=document.getElementById('cd-guest');
   if(a) a.textContent = txt;
   if(b) b.textContent = txt;
+  if(c) c.textContent = txt;
 }
 tick(); setInterval(tick,1000);
 
@@ -745,6 +769,11 @@ function buildShow(){
   var me = { name:OWNER, color:'gold', pub:true, score:10, self:true,
              msg:'这朵是你的主烟花。朋友答完题后，他们的烟花会陆续点亮这片夜空，点击昵称就能看到 TA 写给你的话。' };
   var all = [me].concat(stored);
+  /* 朋友答完题后：TA 为主人燃放的烟花也出现在夜空里 */
+  if(GUEST_MODE && myAnswers.length>=10){
+    all.push({ name:guestName, color:'coral', pub:true, score:score, guest:true,
+               msg:'这是你刚刚为 '+OWNER+' 燃放的烟花 · 共答对 '+score+' 题' });
+  }
   var pos = [[64,148],[188,96],[282,186],[146,286],[248,318],[40,268],[110,368],[300,300],[60,220]];
   for(var j=0;j<all.length;j++){
     (function(n, idx){
@@ -756,6 +785,9 @@ function buildShow(){
         onclick:function(){
           if(n.self){
             document.getElementById('mTitle').textContent = OWNER+' 的主烟花';
+            document.getElementById('mBody').textContent = n.msg;
+          } else if(n.guest){
+            document.getElementById('mTitle').textContent = '你燃放的烟花 🎆';
             document.getElementById('mBody').textContent = n.msg;
           } else {
             document.getElementById('mTitle').textContent = n.pub ? n.name+' 的纸条' : '🤫 这是个秘密';
@@ -872,6 +904,8 @@ function makeLink(){
     url = base + '#g=' + b64e(JSON.stringify({ c:name, q:qs }));
     toast('链接已生成（含自定义题目，稍长）');
   }
+  /* 记忆数据：下次打开不用重新填写 */
+  try{ localStorage.setItem('yanhuaxin_owner', JSON.stringify({ name:name, qs:qs })); }catch(e){}
   document.getElementById('linkOut').value = url;
   document.getElementById('linkBox').style.display = 'block';
 }
@@ -913,6 +947,7 @@ function initFromHash(){
           q[3] = s.a.charAt(i)==='1' ? 1 : 0;
           QUESTIONS.push(q);
         }
+        try{ localStorage.setItem('yanhuaxin_invite', JSON.stringify({ c:OWNER, qs:QUESTIONS })); }catch(e){}
         return true;
       }
     }catch(e){}
@@ -922,10 +957,85 @@ function initFromHash(){
   if(m){
     try{
       var d2 = JSON.parse(b64d(m[1]));
-      if(d2 && d2.c && d2.q){ QUESTIONS = d2.q; OWNER = String(d2.c).slice(0,12); return true; }
+      if(d2 && d2.c && d2.q){
+        QUESTIONS = d2.q; OWNER = String(d2.c).slice(0,12);
+        try{ localStorage.setItem('yanhuaxin_invite', JSON.stringify({ c:OWNER, qs:QUESTIONS })); }catch(e){}
+        return true;
+      }
     }catch(e){}
   }
   return false;
+}
+
+/* ---------- 朋友开场页：帮 TA 放烟花 ---------- */
+function buildGuestShow(){
+  var layer = document.getElementById('fw-guest');
+  if(!layer) return;
+  var olds = layer.querySelectorAll('.fw');
+  for(var i=0;i<olds.length;i++){ if(olds[i].remove) olds[i].remove(); else olds[i].parentNode.removeChild(olds[i]); }
+  makeFirework(layer, {
+    x:116, y:36, color:'gold', count:18, cycle:'5.2s', scale:1.15, gala:true, name:OWNER,
+    onclick:function(){
+      document.getElementById('mTitle').textContent = OWNER+' 的主烟花';
+      document.getElementById('mBody').textContent = '这是 '+OWNER+' 点亮的主烟花。答题帮 TA 燃放更多烟花，答对 8 题以上还能解锁金色满堂。';
+      document.getElementById('modal').classList.add('on');
+    }
+  });
+}
+(function(){
+  var layer = document.getElementById('fw-guest');
+  if(!layer) return;
+  layer.addEventListener('click', function(e){
+    if(e.target!==layer) return;
+    var r = layer.getBoundingClientRect();
+    var fw = makeFirework(layer, {
+      x: e.clientX-r.left-80, y: e.clientY-r.top-80,
+      color: ['coral','pink','teal','violet'][Math.floor(Math.random()*4)],
+      once:true, count:16, scale:.9+Math.random()*.4
+    });
+    setTimeout(function(){ if(fw.remove) fw.remove(); else if(fw.parentNode) fw.parentNode.removeChild(fw); }, 2300);
+  });
+})();
+
+/* ---------- 身份切换 & 记忆数据 ---------- */
+function defaultCopy(){
+  var arr = [];
+  for(var i=0;i<DEFAULT_QS.length;i++) arr.push(DEFAULT_QS[i].slice());
+  return arr;
+}
+function buildNav(){
+  var n = document.getElementById('nav');
+  n.innerHTML = '';
+  var ALL = [['sc-create','1 创建'],['sc-guestshow','2 看烟花'],['sc-invite','3 邀请页'],['sc-name','4 取昵称'],['sc-quiz','5 答题'],['sc-result','6 结果'],['sc-report','7 报告'],['sc-note','8 纸条'],['sc-show','9 烟花秀']];
+  var list = GUEST_MODE ? ALL.slice(1) : ALL;
+  for(var i=0;i<list.length;i++){
+    (function(t, label){
+      var b=document.createElement('button');
+      b.textContent=label;
+      b.setAttribute('data-t', t);
+      b.onclick=function(){
+        if(t==='sc-report'){ openReport(); return; }
+        go(t);
+      };
+      n.appendChild(b);
+    })(list[i][0], list[i][1]);
+  }
+}
+function becomeCreator(){
+  GUEST_MODE = false;
+  QUESTIONS = defaultCopy();
+  var typed = (document.getElementById('guestName').value||'').replace(/^\s+|\s+$/g,'');
+  var own = '';
+  try{ own = (JSON.parse(localStorage.getItem('yanhuaxin_owner')||'null')||{}).name || ''; }catch(e){}
+  OWNER = typed || own || '阿蓝';
+  document.getElementById('creatorName').value = OWNER;
+  buildEditor();
+  document.getElementById('codeBox').style.display = 'block';
+  var b = document.getElementById('showCreateBtn'); if(b) b.style.display = 'none';
+  applyOwner();
+  buildNav();
+  toast('开始创建你自己的专属烟花 ✨');
+  go('sc-create');
 }
 
 /* ---------- init ---------- */
@@ -942,31 +1052,36 @@ function applyOwner(){
   if(typeof buildShow === 'function') buildShow();
 }
 GUEST_MODE = initFromHash();
+var startScreen = 'sc-create';
 if(GUEST_MODE){
   document.getElementById('creatorName').value = OWNER;
+  startScreen = 'sc-guestshow';   /* 朋友点开链接直达「帮 TA 放烟花」 */
+} else if(!(location.hash && location.hash.replace(/^\s+|\s+$/g,'').length>1)){
+  /* 无链接进入：恢复上次记忆的数据 */
+  var mem = null;
+  try{ mem = JSON.parse(localStorage.getItem('yanhuaxin_invite')||'null'); }catch(e){}
+  if(mem && mem.c && mem.qs && mem.qs.length===10){
+    OWNER = String(mem.c).slice(0,12); QUESTIONS = mem.qs; GUEST_MODE = true;
+    document.getElementById('creatorName').value = OWNER;
+    startScreen = 'sc-guestshow';
+  } else {
+    try{ mem = JSON.parse(localStorage.getItem('yanhuaxin_owner')||'null'); }catch(e){}
+    if(mem && mem.name && mem.qs && mem.qs.length===10){
+      OWNER = String(mem.name).slice(0,12); QUESTIONS = mem.qs;
+      document.getElementById('creatorName').value = OWNER;
+    }
+    buildEditor();
+  }
 } else {
-  OWNER = document.getElementById('creatorName').value.replace(/^\s+|\s+$/g,'') || '阿蓝';
   buildEditor();
 }
 applyOwner();
-var NAV_ALL = [['sc-create','1 创建'],['sc-invite','2 邀请页'],['sc-name','3 取昵称'],['sc-quiz','4 答题'],['sc-result','5 结果'],['sc-report','6 报告'],['sc-note','7 纸条'],['sc-show','8 烟花秀']];
-var NAV = GUEST_MODE ? NAV_ALL.slice(1) : NAV_ALL;
-var nav = document.getElementById('nav');
-for(var ni=0; ni<NAV.length; ni++){
-  (function(t, label){
-    var b=document.createElement('button');
-    b.textContent=label;
-    b.setAttribute('data-t', t);
-    b.onclick=function(){
-      if(t==='sc-report'){ openReport(); return; }
-      go(t);
-    };
-    nav.appendChild(b);
-  })(NAV[ni][0], NAV[ni][1]);
-}
+buildNav();
 document.getElementById('codeBox').style.display = GUEST_MODE ? 'none' : 'block';
+var scb = document.getElementById('showCreateBtn');
+if(scb) scb.style.display = GUEST_MODE ? 'block' : 'none';
 buildShow();
-go(GUEST_MODE ? 'sc-invite' : 'sc-create');
+go(startScreen);
 
 </script>
 </body>
