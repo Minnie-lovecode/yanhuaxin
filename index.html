@@ -437,6 +437,7 @@
       <p id="mBody"></p>
       <textarea id="mCode" readonly style="display:none;width:100%;height:84px;margin-top:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:10px;color:#ffd97a;font-size:16px;padding:10px;outline:none;font-family:monospace;"></textarea>
       <button class="btn ghost" id="mCopy" style="display:none;margin-top:10px;" onclick="copyCode()">复制祝福链接</button>
+      <button class="btn" id="mShow" style="display:none;margin-top:10px;" onclick="closeModal();go('sc-show')">去烟花秀看你的纸条 ✨</button>
       <button class="btn close" onclick="closeModal()">好的</button>
     </div>
   </div>
@@ -732,14 +733,25 @@ function reAnswer(){ startQuiz(); }
 function submitNote(){
   var msg = document.getElementById('noteText').value.replace(/^\s+|\s+$/g,'');
   if(!msg){ toast('先写下你的祝福吧～'); return; }
-  var payload = b64e(JSON.stringify({f:guestName,m:msg,p:privacy,s:score}));
+  /* 心愿瓶立即记录：纸条马上变成夜空里的烟花，点击昵称直接看祝福 */
+  addToNotes({ f:guestName, m:msg, p:privacy, s:score, mine:true });
+  /* 祝福链接：让主人的夜空也能点亮这朵烟花 */
+  var payload = b64e(JSON.stringify({ f:guestName, m:msg, p:privacy, s:score }));
   var link = location.origin + location.pathname + '#r=' + payload;
+  try{
+    var sent = JSON.parse(localStorage.getItem('yanhuaxin_sent')||'[]');
+    sent.push({ f:guestName, m:msg, link:link, t:new Date().getTime() });
+    localStorage.setItem('yanhuaxin_sent', JSON.stringify(sent));
+  }catch(e){}
   document.getElementById('mTitle').textContent = '纸条已放入心愿瓶 🎇';
-  document.getElementById('mBody').textContent = '点击下方按钮复制「祝福链接」，用微信发给 '+OWNER+'。TA 点开这条链接，你的烟花和祝福就会出现在 TA 的夜空里，点击你的昵称即可查看。';
+  document.getElementById('mBody').textContent = '点击下方「去烟花秀」，再点击你的烟花昵称就能直接看到这条祝福。想让 '+OWNER+' 的夜空也点亮它，把「祝福链接」用微信发给 TA 就好～';
   var ta = document.getElementById('mCode');
   ta.style.display = 'block'; ta.value = link;
   document.getElementById('mCopy').style.display = 'block';
+  var ms = document.getElementById('mShow'); if(ms) ms.style.display = 'block';
   document.getElementById('modal').classList.add('on');
+  document.getElementById('noteText').value = '';
+  toast('已放入心愿瓶 · 点击烟花昵称可直接查看');
 }
 function copyCode(){
   var ta = document.getElementById('mCode');
@@ -781,10 +793,18 @@ function buildShow(){
       makeFirework(layer, {
         x:p[0], y:p[1], color:n.color, count:14, cycle:'5.2s',
         scale:((n.gala||(n.score||0)>=8)?1.05:.85)+Math.random()*.3, gala:!!n.gala,
-        name:n.name, private:!n.pub && !n.self,
+        name:n.name, private:!n.pub && !n.self && !n.mine,
         onclick:function(){
+          /* 打开弹窗前清掉上一个弹窗遗留的链接框/按钮 */
+          document.getElementById('mCode').style.display = 'none';
+          document.getElementById('mCopy').style.display = 'none';
+          document.getElementById('mShow').style.display = 'none';
           if(n.self){
             document.getElementById('mTitle').textContent = OWNER+' 的主烟花';
+            document.getElementById('mBody').textContent = n.msg;
+          } else if(n.mine){
+            /* 自己写的纸条：点击昵称直接看祝福 */
+            document.getElementById('mTitle').textContent = '你写给 '+OWNER+' 的纸条';
             document.getElementById('mBody').textContent = n.msg;
           } else if(n.guest){
             document.getElementById('mTitle').textContent = '你燃放的烟花 🎆';
@@ -812,7 +832,8 @@ function addToNotes(d){
   notes.push({
     name:String(d.f).slice(0,12),
     color:['gold','coral','pink','teal','violet'][notes.length%5],
-    pub:!d.p, msg:String(d.m).slice(0,120), score:d.s||0
+    pub:!d.p, msg:String(d.m).slice(0,120), score:d.s||0,
+    mine:!!d.mine
   });
   try{ localStorage.setItem(LS_KEY, JSON.stringify(notes)); }catch(e){}
   buildShow();
@@ -976,6 +997,9 @@ function buildGuestShow(){
   makeFirework(layer, {
     x:116, y:36, color:'gold', count:18, cycle:'5.2s', scale:1.15, gala:true, name:OWNER,
     onclick:function(){
+      document.getElementById('mCode').style.display = 'none';
+      document.getElementById('mCopy').style.display = 'none';
+      document.getElementById('mShow').style.display = 'none';
       document.getElementById('mTitle').textContent = OWNER+' 的主烟花';
       document.getElementById('mBody').textContent = '这是 '+OWNER+' 点亮的主烟花。答题帮 TA 燃放更多烟花，答对 8 题以上还能解锁金色满堂。';
       document.getElementById('modal').classList.add('on');
