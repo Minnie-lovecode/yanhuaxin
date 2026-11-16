@@ -418,16 +418,27 @@
     <div id="showEmpty" style="position:relative;z-index:4;display:none;text-align:center;color:#8b92b3;font-size:13px;line-height:1.9;margin-top:14px;">
       夜空里现在只有你的主烟花 ✨<br>把邀请链接发给朋友，他们答完题就会在这里点亮烟花
     </div>
-    <div class="bottle">
-      <div class="jar"></div>
-      <div style="flex:1;">
-        <div style="color:#fff;font-size:14px;font-weight:600;">心愿瓶 · <span id="cntPub">4</span> 张纸条已收集</div>
-        <div style="color:#a9b0cf;font-size:12px;margin-top:2px;">零点开封 · 还有 <b id="cd-show" style="color:#ffd97a;font-variant-numeric:tabular-nums;">--</b></div>
-      </div>
-      <span class="tag" style="flex:none;">2027</span>
+    <div style="position:relative;z-index:4;">
+      <button class="btn ghost" style="margin-top:4px;" onclick="go('sc-bottle')">🍾 心愿瓶 · 已收集 <b id="cntBottle" style="color:#ffd97a;">0</b> 张纸条 · 零点开封</button>
+      <button class="btn ghost" id="showCreateBtn" style="margin-top:12px;" onclick="becomeCreator()">生成我的专属烟花 ✨</button>
     </div>
-    <p class="sheet-hint">烟花信 v7 · 所有祝福将于 12 月 31 日 24:00 随零点烟花一同开封 🎇</p>
-    <button class="btn ghost" id="showCreateBtn" style="margin-top:4px;display:none;position:relative;z-index:4;" onclick="becomeCreator()">生成我的专属烟花 ✨</button>
+    <p class="sheet-hint">烟花信 v8 · 点击烟花昵称可直接查看 TA 的祝福 💛</p>
+    <div class="foot-pad"></div>
+  </section>
+
+  <!-- 10 心愿瓶（独立页面） -->
+  <section class="screen" id="sc-bottle">
+    <div class="stars"></div>
+    <div class="topbar">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span class="tag">🍾 心愿瓶</span>
+        <span class="sub" style="font-size:12px;">零点开封 · <b id="cd-bottle" style="color:#ffd97a;font-variant-numeric:tabular-nums;">--</b></span>
+      </div>
+      <p class="sub" style="font-size:12px;margin-top:8px;"><span id="bottleCount">瓶子还空着</span> · 12 月 31 日 24:00 随零点烟花一同开封 🎇</p>
+    </div>
+    <div id="bottleList" style="margin-top:4px;"></div>
+    <div class="grow"></div>
+    <button class="btn ghost" onclick="go('sc-show')">回到烟花夜空 ✨</button>
     <div class="foot-pad"></div>
   </section>
 
@@ -468,6 +479,94 @@ var QUESTIONS = (function(){
 })();
 var OWNER = '阿蓝';
 var GUEST_MODE = false;
+var ROOM = '';   /* 云端烟花房间 id：同一个房间的人互相看得到烟花 */
+
+/* ---------- 云端存储（GitHub 仓库作为数据库） ---------- */
+var GH_REPO = 'Minnie-lovecode/yanhuaxin';
+var GH_TOKEN = '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';
+var GH_HEADERS = { 'Authorization': 'token ' + GH_TOKEN, 'Accept': 'application/vnd.github+json' };
+
+function stdb64(s){ return btoa(unescape(encodeURIComponent(s))); }
+function xhreq(method, url, body, headers, cb){
+  try{
+    var x = new XMLHttpRequest();
+    x.open(method, url, true);
+    if(headers) for(var k in headers) x.setRequestHeader(k, headers[k]);
+    x.onreadystatechange = function(){
+      if(x.readyState === 4) cb(x.status, x.responseText);
+    };
+    x.onerror = function(){ cb(0, ''); };
+    x.send(body || null);
+  }catch(e){ cb(0, ''); }
+}
+function roomFile(){ return 'data/room-' + ROOM + '.json'; }
+/* 读取房间：cb(data, sha) */
+function loadRoom(cb){
+  if(!ROOM){ cb(null, null); return; }
+  var url = 'https://api.github.com/repos/' + GH_REPO + '/contents/' + roomFile() +
+            '?ref=main&t=' + (new Date().getTime());
+  xhreq('GET', url, null, GH_HEADERS, function(st, txt){
+    if(st === 200){
+      try{
+        var d = JSON.parse(txt);
+        var data = d.content ? JSON.parse(b64d(String(d.content).replace(/\s/g,''))) : null;
+        cb(data, d.sha);
+        return;
+      }catch(e){}
+    }
+    cb(null, null);
+  });
+}
+/* 写入房间：带冲突重试 */
+function saveRoomData(data, sha, cb, tries){
+  var bodyObj = { message: '烟花信房间更新', content: stdb64(JSON.stringify(data)), branch: 'main' };
+  if(sha) bodyObj.sha = sha;
+  xhreq('PUT', 'https://api.github.com/repos/' + GH_REPO + '/contents/' + roomFile(),
+        JSON.stringify(bodyObj), GH_HEADERS, function(st, txt){
+    if(st === 200 || st === 201){ if(cb) cb(true); }
+    else if((st === 409 || st === 422) && (tries || 0) < 2){ saveRoomData(data, null, cb, (tries||0)+1); }
+    else { if(cb) cb(false); }
+  });
+}
+/* 同名合并：答题记录 + 留言合并成一条 */
+function mergeRecord(g, rec){
+  for(var i=0;i<g.length;i++){
+    if(g[i].f === rec.f){
+      if(rec.m){ g[i].m = rec.m; g[i].p = rec.p; }
+      if(rec.s) g[i].s = rec.s;
+      return;
+    }
+  }
+  g.push(rec);
+}
+/* 写入队列：串行执行，避免答题/纸条两次写入互相覆盖 */
+var roomQueue = [], roomBusy = false;
+function pushRecord(rec){
+  roomQueue.push(rec);
+  drainRoomQueue();
+}
+function drainRoomQueue(){
+  if(roomBusy || !roomQueue.length) return;
+  roomBusy = true;
+  var rec = roomQueue.shift();
+  var attempt = function(tries){
+    loadRoom(function(d, sha){
+      if(!d || !d.g) d = { c: OWNER, g: [] };
+      mergeRecord(d.g, rec);
+      saveRoomData(d, sha, function(okflag){
+        if(!okflag && (tries||0) < 2){ attempt((tries||0)+1); return; }
+        roomBusy = false;
+        drainRoomQueue();
+      });
+    });
+  };
+  attempt(0);
+}
+function randId(){
+  var s = '', cs = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  for(var i=0;i<10;i++) s += cs.charAt(Math.floor(Math.random()*cs.length));
+  return s;
+}
 
 /* ---------- 编码工具（ES5 兼容） ---------- */
 function b64e(s){
@@ -497,6 +596,7 @@ function go(id){
   if(id==='sc-result'){ fireResult(); }
   if(id==='sc-quiz'){ renderQ(); }
   if(id==='sc-guestshow'){ buildGuestShow(); }
+  if(id==='sc-bottle'){ refreshShow(); }
   if(id==='sc-show'){ buildShow(); finale(4, 900); }
 }
 function toast(msg){
@@ -604,10 +704,11 @@ function tick(){
   var mi = pad2(Math.floor(ms/6e4));
   var s = pad2(Math.floor(ms/1e3)%60);
   var txt = d+'天 '+h+':'+mi+':'+s;
-  var a=document.getElementById('cd-invite'), b=document.getElementById('cd-show'), c=document.getElementById('cd-guest');
+  var a=document.getElementById('cd-invite'), b=document.getElementById('cd-show'), c=document.getElementById('cd-guest'), d2=document.getElementById('cd-bottle');
   if(a) a.textContent = txt;
   if(b) b.textContent = txt;
   if(c) c.textContent = txt;
+  if(d2) d2.textContent = txt;
 }
 tick(); setInterval(tick,1000);
 
@@ -648,6 +749,8 @@ function showResult(){
   else               R = ['面基之交','没关系，烟花依然为你绽放，友谊从今天升级'];
   document.getElementById('rankTitle').textContent = R[0];
   document.getElementById('rankDesc').textContent = R[1];
+  /* 云端：把你的烟花挂上主人的夜空 */
+  if(ROOM){ pushRecord({ f:guestName, s:score, t:new Date().getTime() }); toast('你的烟花已点亮 '+OWNER+' 的夜空 ✨'); }
   go('sc-result');
 }
 function fireResult(){
@@ -735,8 +838,10 @@ function submitNote(){
   if(!msg){ toast('先写下你的祝福吧～'); return; }
   /* 心愿瓶立即记录：纸条马上变成夜空里的烟花，点击昵称直接看祝福 */
   addToNotes({ f:guestName, m:msg, p:privacy, s:score, mine:true });
-  /* 祝福链接：让主人的夜空也能点亮这朵烟花 */
-  var payload = b64e(JSON.stringify({ f:guestName, m:msg, p:privacy, s:score }));
+  /* 云端：纸条同步进房间，主人的夜空也会点亮这朵烟花 */
+  if(ROOM) pushRecord({ f:guestName, s:score, m:msg, p:privacy, t:new Date().getTime() });
+  /* 祝福链接：房间失效时的兜底通道 */
+  var payload = b64e(JSON.stringify({ f:guestName, m:msg, p:privacy, s:score, b:ROOM }));
   var link = location.origin + location.pathname + '#r=' + payload;
   try{
     var sent = JSON.parse(localStorage.getItem('yanhuaxin_sent')||'[]');
@@ -766,66 +871,145 @@ var LS_KEY = 'yanhuaxin_notes';
 function loadNotes(){
   try{ return JSON.parse(localStorage.getItem(LS_KEY)||'[]'); }catch(e){ return []; }
 }
-function buildShow(){
+function buildShow(){ refreshShow(); }
+
+/* ---------- 汇总所有答题记录（云端房间 + 本地兜底） ---------- */
+function gatherRecords(cb){
+  var recs = [];
+  var raw = loadNotes();
+  for(var i=0;i<raw.length;i++){
+    var o = raw[i];
+    recs.push({ f:o.name, s:o.score||0, m:o.msg||'', p:!o.pub, mine:!!o.mine });
+  }
+  /* 无房间的旧链接兜底：朋友自己的答题烟花 */
+  if(!ROOM && GUEST_MODE && myAnswers.length>=10){
+    recs.push({ f:guestName, s:score, m:'', p:false, mine:true });
+  }
+  loadRoom(function(d){
+    if(d && d.g){
+      for(var j=0;j<d.g.length;j++){
+        var r = d.g[j];
+        recs.push({ f:String(r.f), s:r.s||0, m:r.m||'', p:!!r.p, mine:GUEST_MODE && r.f===guestName });
+      }
+    }
+    cb(dedupeRecords(recs));
+  });
+}
+function dedupeRecords(recs){
+  var map = {}, order = [];
+  for(var i=0;i<recs.length;i++){
+    var r = recs[i];
+    if(!r.f) continue;
+    if(!map[r.f]){
+      map[r.f] = { f:r.f, s:r.s||0, m:r.m||'', p:!!r.p, mine:!!r.mine };
+      order.push(r.f);
+    } else {
+      var o = map[r.f];
+      if(r.m){ o.m = r.m; o.p = !!r.p; }
+      if(r.s > o.s) o.s = r.s;
+      if(r.mine) o.mine = true;
+    }
+  }
+  var out = [];
+  for(var j=0;j<order.length;j++) out.push(map[order[j]]);
+  return out;
+}
+/* 点击烟花昵称 → 直接看祝福 */
+function showRecModal(rec){
+  document.getElementById('mCode').style.display = 'none';
+  document.getElementById('mCopy').style.display = 'none';
+  document.getElementById('mShow').style.display = 'none';
+  if(rec.self){
+    document.getElementById('mTitle').textContent = OWNER+' 的主烟花';
+    document.getElementById('mBody').textContent = '这朵是你的主烟花。朋友答完题后，他们的烟花会陆续点亮这片夜空，点击昵称就能看到 TA 写给你的话。';
+  } else if(rec.m && (!rec.p || rec.mine || !GUEST_MODE)){
+    document.getElementById('mTitle').textContent = rec.f + (rec.p ? ' 的保密纸条 🔒' : ' 的祝福');
+    document.getElementById('mBody').textContent = rec.m;
+  } else if(rec.m){
+    document.getElementById('mTitle').textContent = '🤫 这是个秘密';
+    document.getElementById('mBody').textContent = rec.f+' 把祝福藏了起来，只有主人零点开封心愿瓶时才能看见。';
+  } else {
+    document.getElementById('mTitle').textContent = rec.f + ' 的烟花';
+    document.getElementById('mBody').textContent = '答对 '+rec.s+' / 10 题' + (rec.s>=8 ? ' · 金色满堂！' : '') + ' · TA 的祝福还没送上，敬请期待～';
+  }
+  document.getElementById('modal').classList.add('on');
+}
+/* ---------- 完整夜空：所有答题人的烟花 ---------- */
+function posFor(i){
+  var col = i % 3, row = Math.floor(i/3) % 4;
+  return [ 28 + col*116 + Math.random()*24, 26 + row*100 + Math.random()*28 ];
+}
+function renderSky(recs){
   var layer = document.getElementById('fw-show');
   var olds = layer.querySelectorAll('.fw');
   for(var i=0;i<olds.length;i++){ if(olds[i].remove) olds[i].remove(); else olds[i].parentNode.removeChild(olds[i]); }
-  var raw = loadNotes(), stored = [];
-  for(var s=0;s<raw.length;s++){
-    var o = {};
-    for(var k in raw[s]) o[k] = raw[s][k];
-    o.gala = (raw[s].score||0) >= 8;
-    stored.push(o);
+  var all = [{ f:OWNER, s:10, m:'', self:true }].concat(recs||[]);
+  var noteN = 0, pubN = 0;
+  for(var k=0;k<(recs||[]).length;k++){
+    if(recs[k].m){ noteN++; if(!recs[k].p) pubN++; }
   }
-  /* 只有主人自己的烟花 + 真实收到的祝福，没有演示数据 */
-  var me = { name:OWNER, color:'gold', pub:true, score:10, self:true,
-             msg:'这朵是你的主烟花。朋友答完题后，他们的烟花会陆续点亮这片夜空，点击昵称就能看到 TA 写给你的话。' };
-  var all = [me].concat(stored);
-  /* 朋友答完题后：TA 为主人燃放的烟花也出现在夜空里 */
-  if(GUEST_MODE && myAnswers.length>=10){
-    all.push({ name:guestName, color:'coral', pub:true, score:score, guest:true,
-               msg:'这是你刚刚为 '+OWNER+' 燃放的烟花 · 共答对 '+score+' 题' });
-  }
-  var pos = [[64,148],[188,96],[282,186],[146,286],[248,318],[40,268],[110,368],[300,300],[60,220]];
+  var e1 = document.getElementById('cntAll');   if(e1) e1.textContent = noteN;
+  var e2 = document.getElementById('cntPubN');  if(e2) e2.textContent = pubN;
+  var e3 = document.getElementById('cntBottle');if(e3) e3.textContent = noteN;
+  var hint = document.getElementById('showEmpty');
+  if(hint) hint.style.display = ((recs||[]).length) ? 'none' : 'block';
   for(var j=0;j<all.length;j++){
-    (function(n, idx){
-      var p = pos[idx%pos.length];
+    (function(rec, idx){
+      var p = rec.self ? [64,148] : posFor(idx-0);
       makeFirework(layer, {
-        x:p[0], y:p[1], color:n.color, count:14, cycle:'5.2s',
-        scale:((n.gala||(n.score||0)>=8)?1.05:.85)+Math.random()*.3, gala:!!n.gala,
-        name:n.name, private:!n.pub && !n.self && !n.mine,
-        onclick:function(){
-          /* 打开弹窗前清掉上一个弹窗遗留的链接框/按钮 */
-          document.getElementById('mCode').style.display = 'none';
-          document.getElementById('mCopy').style.display = 'none';
-          document.getElementById('mShow').style.display = 'none';
-          if(n.self){
-            document.getElementById('mTitle').textContent = OWNER+' 的主烟花';
-            document.getElementById('mBody').textContent = n.msg;
-          } else if(n.mine){
-            /* 自己写的纸条：点击昵称直接看祝福 */
-            document.getElementById('mTitle').textContent = '你写给 '+OWNER+' 的纸条';
-            document.getElementById('mBody').textContent = n.msg;
-          } else if(n.guest){
-            document.getElementById('mTitle').textContent = '你燃放的烟花 🎆';
-            document.getElementById('mBody').textContent = n.msg;
-          } else {
-            document.getElementById('mTitle').textContent = n.pub ? n.name+' 的纸条' : '🤫 这是个秘密';
-            document.getElementById('mBody').textContent = n.pub ? n.msg : n.name+' 把祝福藏了起来，只有主人（'+OWNER+'）零点开封心愿瓶时才能看见。';
-          }
-          document.getElementById('modal').classList.add('on');
-        }
+        x:p[0], y:p[1],
+        color: rec.self ? 'gold' : (rec.s>=8 ? 'gold' : ['coral','pink','teal','violet'][idx%4]),
+        count:14, cycle:'5.2s',
+        scale:((rec.s>=8)?1.05:.85)+Math.random()*.3,
+        gala: rec.self || rec.s>=8,
+        name:rec.f, private: !rec.self && rec.p && !rec.mine && GUEST_MODE,
+        onclick:function(){ showRecModal(rec); }
       });
     })(all[j], j);
   }
-  var pubN = 0;
-  for(var p2=0;p2<stored.length;p2++) if(stored[p2].pub) pubN++;
-  document.getElementById('cntAll').textContent = stored.length;
-  document.getElementById('cntPubN').textContent = pubN;
-  document.getElementById('cntPub').textContent = pubN;
-  var hint = document.getElementById('showEmpty');
-  if(hint) hint.style.display = stored.length ? 'none' : 'block';
 }
+/* ---------- 心愿瓶（独立页面）：所有纸条卡片 ---------- */
+function renderBottle(recs){
+  var list = document.getElementById('bottleList');
+  if(!list) return;
+  list.innerHTML = '';
+  var notes = [];
+  for(var i=0;i<(recs||[]).length;i++) if(recs[i].m) notes.push(recs[i]);
+  var head = document.getElementById('bottleCount');
+  if(head) head.textContent = notes.length ? '已收集 '+notes.length+' 张纸条' : '瓶子还空着';
+  if(!notes.length){
+    list.innerHTML = '<div class="rp"><div class="ra">瓶子里还没有纸条。朋友答完题写下祝福后会自动放进这里，12 月 31 日 24:00 随零点烟花一同开封 🎇</div></div>';
+    return;
+  }
+  for(var j=notes.length-1;j>=0;j--){
+    (function(rec){
+      var canSee = !rec.p || rec.mine || !GUEST_MODE;
+      var item = document.createElement('div'); item.className = 'paper';
+      item.style.marginTop = '14px';
+      if(canSee){
+        item.innerHTML =
+          '<div style="font-size:13px;color:#8a6d2f;">'+rec.f+(rec.p ? ' · 🔒 保密' : ' · 公开')+' · 答对 '+rec.s+' 题</div>'+
+          '<div style="font-size:15px;line-height:31px;">'+rec.m+'</div>';
+      } else {
+        item.innerHTML =
+          '<div style="font-size:13px;color:#8a6d2f;">'+rec.f+' · 🔒 保密 · 答对 '+rec.s+' 题</div>'+
+          '<div style="font-size:14px;line-height:28px;color:#a08c5a;">这张纸条被折起来了，主人零点开封心愿瓶时才能拆开。</div>';
+      }
+      list.appendChild(item);
+    })(notes[j]);
+  }
+}
+/* 云端刷新：进页面拉一次 + 每 12 秒自动刷新 */
+function refreshShow(){
+  gatherRecords(function(recs){
+    renderSky(recs);
+    renderBottle(recs);
+  });
+}
+setInterval(function(){
+  if(document.getElementById('sc-show').classList.contains('on') ||
+     document.getElementById('sc-bottle').classList.contains('on')) refreshShow();
+}, 12000);
 /* ---------- 祝福收集（收码框 / 祝福链接通用） ---------- */
 function addToNotes(d){
   var notes = loadNotes();
@@ -911,22 +1095,23 @@ function makeLink(){
   OWNER = name; applyOwner();
   var qs = readEditorQs();
   QUESTIONS = qs;
+  if(!ROOM) ROOM = randId();   /* 每个创建者一个云端烟花房间 */
   var base = location.origin + location.pathname;   /* 去掉多余参数，链接更短 */
   var url;
   if(isDefaultQs(qs)){
-    /* 默认题目：只打包昵称 + 10 个答案位，链接超短 */
+    /* 默认题目：只打包昵称 + 10 个答案位 + 房间号 */
     var a = '';
     for(var i2=0;i2<10;i2++) a += qs[i2][3]===1 ? '1' : '0';
-    url = base + '#s=' + b64e(JSON.stringify({ c:name, a:a }));
+    url = base + '#s=' + b64e(JSON.stringify({ c:name, a:a, b:ROOM }));
     toast('链接已生成（短链版）');
   } else {
     /* 自定义题目：题目打包进链接 */
     for(var i3=0;i3<qs.length;i3++) qs[i3][0] = qs[i3][0].replace(/TA/g,name);
-    url = base + '#g=' + b64e(JSON.stringify({ c:name, q:qs }));
+    url = base + '#g=' + b64e(JSON.stringify({ c:name, q:qs, b:ROOM }));
     toast('链接已生成（含自定义题目，稍长）');
   }
   /* 记忆数据：下次打开不用重新填写 */
-  try{ localStorage.setItem('yanhuaxin_owner', JSON.stringify({ name:name, qs:qs })); }catch(e){}
+  try{ localStorage.setItem('yanhuaxin_owner', JSON.stringify({ name:name, qs:qs, room:ROOM })); }catch(e){}
   document.getElementById('linkOut').value = url;
   document.getElementById('linkBox').style.display = 'block';
 }
@@ -945,6 +1130,7 @@ function initFromHash(){
     try{
       var d = JSON.parse(b64d(mr[1]));
       if(d && d.f && d.m){
+        if(d.b) ROOM = String(d.b).slice(0,20);   /* 兜底链接也带回房间号 */
         addToNotes(d);
         setTimeout(function(){
           toast('已收下 '+d.f+' 的祝福 · 点击烟花昵称查看');
@@ -961,6 +1147,7 @@ function initFromHash(){
       var s = JSON.parse(b64d(ms[1]));
       if(s && s.c && s.a && s.a.length===DEFAULT_QS.length){
         OWNER = String(s.c).slice(0,12);
+        ROOM = String(s.b||'').slice(0,20);
         QUESTIONS = [];
         for(var i=0;i<DEFAULT_QS.length;i++){
           var q = DEFAULT_QS[i].slice();
@@ -968,7 +1155,7 @@ function initFromHash(){
           q[3] = s.a.charAt(i)==='1' ? 1 : 0;
           QUESTIONS.push(q);
         }
-        try{ localStorage.setItem('yanhuaxin_invite', JSON.stringify({ c:OWNER, qs:QUESTIONS })); }catch(e){}
+        try{ localStorage.setItem('yanhuaxin_invite', JSON.stringify({ c:OWNER, qs:QUESTIONS, b:ROOM })); }catch(e){}
         return true;
       }
     }catch(e){}
@@ -979,8 +1166,8 @@ function initFromHash(){
     try{
       var d2 = JSON.parse(b64d(m[1]));
       if(d2 && d2.c && d2.q){
-        QUESTIONS = d2.q; OWNER = String(d2.c).slice(0,12);
-        try{ localStorage.setItem('yanhuaxin_invite', JSON.stringify({ c:OWNER, qs:QUESTIONS })); }catch(e){}
+        QUESTIONS = d2.q; OWNER = String(d2.c).slice(0,12); ROOM = String(d2.b||'').slice(0,20);
+        try{ localStorage.setItem('yanhuaxin_invite', JSON.stringify({ c:OWNER, qs:QUESTIONS, b:ROOM })); }catch(e){}
         return true;
       }
     }catch(e){}
@@ -1030,7 +1217,7 @@ function defaultCopy(){
 function buildNav(){
   var n = document.getElementById('nav');
   n.innerHTML = '';
-  var ALL = [['sc-create','1 创建'],['sc-guestshow','2 看烟花'],['sc-invite','3 邀请页'],['sc-name','4 取昵称'],['sc-quiz','5 答题'],['sc-result','6 结果'],['sc-report','7 报告'],['sc-note','8 纸条'],['sc-show','9 烟花秀']];
+  var ALL = [['sc-create','1 创建'],['sc-guestshow','2 看烟花'],['sc-invite','3 邀请页'],['sc-name','4 取昵称'],['sc-quiz','5 答题'],['sc-result','6 结果'],['sc-report','7 报告'],['sc-note','8 纸条'],['sc-show','9 烟花秀'],['sc-bottle','10 心愿瓶']];
   var list = GUEST_MODE ? ALL.slice(1) : ALL;
   for(var i=0;i<list.length;i++){
     (function(t, label){
@@ -1049,9 +1236,10 @@ function becomeCreator(){
   GUEST_MODE = false;
   QUESTIONS = defaultCopy();
   var typed = (document.getElementById('guestName').value||'').replace(/^\s+|\s+$/g,'');
-  var own = '';
-  try{ own = (JSON.parse(localStorage.getItem('yanhuaxin_owner')||'null')||{}).name || ''; }catch(e){}
-  OWNER = typed || own || '阿蓝';
+  var own = null;
+  try{ own = JSON.parse(localStorage.getItem('yanhuaxin_owner')||'null'); }catch(e){}
+  OWNER = typed || (own && own.name) || '阿蓝';
+  ROOM = (own && own.room) || '';   /* 之前在这台设备创建过就回到自己的房间 */
   document.getElementById('creatorName').value = OWNER;
   buildEditor();
   document.getElementById('codeBox').style.display = 'block';
@@ -1086,12 +1274,14 @@ if(GUEST_MODE){
   try{ mem = JSON.parse(localStorage.getItem('yanhuaxin_invite')||'null'); }catch(e){}
   if(mem && mem.c && mem.qs && mem.qs.length===10){
     OWNER = String(mem.c).slice(0,12); QUESTIONS = mem.qs; GUEST_MODE = true;
+    ROOM = String(mem.b||'').slice(0,20);
     document.getElementById('creatorName').value = OWNER;
     startScreen = 'sc-guestshow';
   } else {
     try{ mem = JSON.parse(localStorage.getItem('yanhuaxin_owner')||'null'); }catch(e){}
     if(mem && mem.name && mem.qs && mem.qs.length===10){
       OWNER = String(mem.name).slice(0,12); QUESTIONS = mem.qs;
+      ROOM = String(mem.room||'').slice(0,20);
       document.getElementById('creatorName').value = OWNER;
     }
     buildEditor();
