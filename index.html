@@ -253,7 +253,7 @@
         <input class="input" id="linkOut" readonly placeholder="链接会出现在这里">
         <button class="btn" onclick="copyLink()">复制</button>
       </div>
-      <p class="sub" style="font-size:12px;margin-top:8px;">复制这条链接发到微信 / 朋友圈，朋友点开就是你的专属答题页。</p>
+      <p class="sub" style="font-size:12px;margin-top:8px;">复制这条链接发到微信 / 朋友圈，朋友点开就是你的专属答题页。不改题目就是超短链接 ✂️</p>
     </div>
     <div class="foot-pad"></div>
   </section>
@@ -388,11 +388,14 @@
     </div>
     <div class="grow"></div>
     <div id="codeBox" style="position:relative;z-index:4;display:none;">
-      <div style="display:flex;gap:8px;">
-        <input class="input" id="codeIn" placeholder="粘贴朋友发来的祝福码" style="font-size:16px;padding:12px;flex:1;min-width:0;">
-        <button class="btn" style="width:auto;padding:12px 18px;flex:none;font-size:14px;" onclick="collectCode()">收下</button>
+      <div style="display:flex;">
+        <input class="input" id="codeIn" placeholder="粘贴朋友发来的祝福链接" style="font-size:16px;padding:12px;flex:1;min-width:0;">
+        <button class="btn" style="width:auto;padding:12px 18px;flex:none;font-size:14px;margin-left:8px;" onclick="collectCode()">收下</button>
       </div>
-      <p class="sub" style="font-size:11px;margin-top:6px;">朋友答完题后会把「祝福码」发给你，粘贴到这里，TA 的烟花和纸条就会出现在你的夜空里。</p>
+      <p class="sub" style="font-size:11px;margin-top:6px;">朋友答完题会生成一条「祝福链接」发给你——直接点开链接就能收下祝福（也可以把链接粘到这里）。</p>
+    </div>
+    <div id="showEmpty" style="position:relative;z-index:4;display:none;text-align:center;color:#8b92b3;font-size:13px;line-height:1.9;margin-top:14px;">
+      夜空里现在只有你的主烟花 ✨<br>把邀请链接发给朋友，他们答完题就会在这里点亮烟花
     </div>
     <div class="bottle">
       <div class="jar"></div>
@@ -402,7 +405,7 @@
       </div>
       <span class="tag" style="flex:none;">2027</span>
     </div>
-    <p class="sheet-hint">烟花信 v5 · 所有祝福将于 12 月 31 日 24:00 随零点烟花一同开封 🎇</p>
+    <p class="sheet-hint">烟花信 v6 · 所有祝福将于 12 月 31 日 24:00 随零点烟花一同开封 🎇</p>
     <div class="foot-pad"></div>
   </section>
 
@@ -411,7 +414,7 @@
       <h3 id="mTitle"></h3>
       <p id="mBody"></p>
       <textarea id="mCode" readonly style="display:none;width:100%;height:84px;margin-top:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:10px;color:#ffd97a;font-size:16px;padding:10px;outline:none;font-family:monospace;"></textarea>
-      <button class="btn ghost" id="mCopy" style="display:none;margin-top:10px;" onclick="copyCode()">复制祝福码</button>
+      <button class="btn ghost" id="mCopy" style="display:none;margin-top:10px;" onclick="copyCode()">复制祝福链接</button>
       <button class="btn close" onclick="closeModal()">好的</button>
     </div>
   </div>
@@ -440,13 +443,6 @@ var QUESTIONS = (function(){
   for(var i=0;i<DEFAULT_QS.length;i++) arr.push(DEFAULT_QS[i].slice());
   return arr;
 })();
-var SHOW_NOTES = [
-  { name:'小鹿',   color:'gold',   pub:true, score:9, msg:'新年也要闪闪发光呀！烟花是你，我也是。——小鹿' },
-  { name:'阿伟',   color:'gold',   pub:true, score:8, gala:true, msg:'8/10！我对你的了解可是刻在 DNA 里的。金色满堂，新年暴富！' },
-  { name:'糖糖',   color:'pink',   pub:true, score:6, msg:'认识你的第 4 年，希望 2027 我们还要一起倒数。' },
-  { name:'神秘朋友', color:'violet', pub:false, score:3 },
-  { name:'大鹏',   color:'teal',   pub:true, score:5, msg:'祝你新的一年烦恼清零，快乐加满！' }
-];
 var OWNER = '阿蓝';
 var GUEST_MODE = false;
 
@@ -712,11 +708,12 @@ function reAnswer(){ startQuiz(); }
 function submitNote(){
   var msg = document.getElementById('noteText').value.replace(/^\s+|\s+$/g,'');
   if(!msg){ toast('先写下你的祝福吧～'); return; }
-  var code = b64e(JSON.stringify({f:guestName,m:msg,p:privacy,s:score}));
+  var payload = b64e(JSON.stringify({f:guestName,m:msg,p:privacy,s:score}));
+  var link = location.origin + location.pathname + '#r=' + payload;
   document.getElementById('mTitle').textContent = '纸条已放入心愿瓶 🎇';
-  document.getElementById('mBody').textContent = '把下面的「祝福码」复制发给 '+OWNER+'（微信直接粘贴即可），TA 收到后放进烟花秀，你的祝福就会出现在 TA 的夜空里。';
+  document.getElementById('mBody').textContent = '点击下方按钮复制「祝福链接」，用微信发给 '+OWNER+'。TA 点开这条链接，你的烟花和祝福就会出现在 TA 的夜空里，点击你的昵称即可查看。';
   var ta = document.getElementById('mCode');
-  ta.style.display = 'block'; ta.value = code;
+  ta.style.display = 'block'; ta.value = link;
   document.getElementById('mCopy').style.display = 'block';
   document.getElementById('modal').classList.add('on');
 }
@@ -724,7 +721,7 @@ function copyCode(){
   var ta = document.getElementById('mCode');
   ta.select();
   if(ta.setSelectionRange) ta.setSelectionRange(0, 9999);
-  try{ document.execCommand('copy'); toast('祝福码已复制，去发给 '+OWNER+' 吧！'); }catch(e){ toast('长按文字手动复制'); }
+  try{ document.execCommand('copy'); toast('祝福链接已复制，去微信发给 '+OWNER+' 吧！'); }catch(e){ toast('长按文字手动复制链接'); }
   if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).catch(function(){});
 }
 
@@ -744,7 +741,10 @@ function buildShow(){
     o.gala = (raw[s].score||0) >= 8;
     stored.push(o);
   }
-  var all = SHOW_NOTES.concat(stored);
+  /* 只有主人自己的烟花 + 真实收到的祝福，没有演示数据 */
+  var me = { name:OWNER, color:'gold', pub:true, score:10, self:true,
+             msg:'这朵是你的主烟花。朋友答完题后，他们的烟花会陆续点亮这片夜空，点击昵称就能看到 TA 写给你的话。' };
+  var all = [me].concat(stored);
   var pos = [[64,148],[188,96],[282,186],[146,286],[248,318],[40,268],[110,368],[300,300],[60,220]];
   for(var j=0;j<all.length;j++){
     (function(n, idx){
@@ -752,27 +752,30 @@ function buildShow(){
       makeFirework(layer, {
         x:p[0], y:p[1], color:n.color, count:14, cycle:'5.2s',
         scale:((n.gala||(n.score||0)>=8)?1.05:.85)+Math.random()*.3, gala:!!n.gala,
-        name:n.name, private:!n.pub,
+        name:n.name, private:!n.pub && !n.self,
         onclick:function(){
-          document.getElementById('mTitle').textContent = n.pub ? n.name+' 的纸条' : '🤫 这是个秘密';
-          document.getElementById('mBody').textContent = n.pub ? n.msg : n.name+' 把祝福藏了起来，只有主人（'+OWNER+'）零点开封心愿瓶时才能看见。';
+          if(n.self){
+            document.getElementById('mTitle').textContent = OWNER+' 的主烟花';
+            document.getElementById('mBody').textContent = n.msg;
+          } else {
+            document.getElementById('mTitle').textContent = n.pub ? n.name+' 的纸条' : '🤫 这是个秘密';
+            document.getElementById('mBody').textContent = n.pub ? n.msg : n.name+' 把祝福藏了起来，只有主人（'+OWNER+'）零点开封心愿瓶时才能看见。';
+          }
           document.getElementById('modal').classList.add('on');
         }
       });
     })(all[j], j);
   }
   var pubN = 0;
-  for(var p2=0;p2<all.length;p2++) if(all[p2].pub) pubN++;
-  document.getElementById('cntAll').textContent = all.length;
+  for(var p2=0;p2<stored.length;p2++) if(stored[p2].pub) pubN++;
+  document.getElementById('cntAll').textContent = stored.length;
   document.getElementById('cntPubN').textContent = pubN;
   document.getElementById('cntPub').textContent = pubN;
+  var hint = document.getElementById('showEmpty');
+  if(hint) hint.style.display = stored.length ? 'none' : 'block';
 }
-function collectCode(){
-  var raw = document.getElementById('codeIn').value.replace(/^\s+|\s+$/g,'');
-  if(!raw){ toast('先粘贴朋友发来的祝福码哦～'); return; }
-  var d = null;
-  try{ d = JSON.parse(b64d(raw)); }catch(e){ d = null; }
-  if(!d || !d.f || !d.m){ toast('祝福码好像不对，请检查是否复制完整'); return; }
+/* ---------- 祝福收集（收码框 / 祝福链接通用） ---------- */
+function addToNotes(d){
   var notes = loadNotes();
   notes.push({
     name:String(d.f).slice(0,12),
@@ -780,9 +783,25 @@ function collectCode(){
     pub:!d.p, msg:String(d.m).slice(0,120), score:d.s||0
   });
   try{ localStorage.setItem(LS_KEY, JSON.stringify(notes)); }catch(e){}
-  document.getElementById('codeIn').value = '';
   buildShow();
-  toast('已收下 '+d.f+' 的祝福 🎆');
+}
+function extractPayload(raw){
+  raw = raw.replace(/^\s+|\s+$/g,'');
+  var i = raw.indexOf('#');
+  if(i >= 0) raw = raw.slice(i+1);
+  if(raw.indexOf('r=')===0) raw = raw.slice(2);
+  else if(raw.indexOf('g=')===0) return null;
+  return raw;
+}
+function collectCode(){
+  var raw = extractPayload(document.getElementById('codeIn').value);
+  if(!raw){ toast('先粘贴朋友发来的祝福链接哦～'); return; }
+  var d = null;
+  try{ d = JSON.parse(b64d(raw)); }catch(e){ d = null; }
+  if(!d || !d.f || !d.m){ toast('链接好像不对，请让朋友重新发送完整链接'); return; }
+  addToNotes(d);
+  document.getElementById('codeIn').value = '';
+  toast('已收下 '+d.f+' 的祝福 🎆 点击夜空中的昵称可查看');
 }
 
 /* ---------- 创建者：题目编辑器 & 链接生成 ---------- */
@@ -814,24 +833,47 @@ function buildEditor(){
   }
   for(var j=0;j<QUESTIONS.length;j++) setAns(j, QUESTIONS[j][3]);
 }
-function makeLink(){
-  var name = document.getElementById('creatorName').value.replace(/^\s+|\s+$/g,'') || '阿蓝';
-  OWNER = name; applyOwner();
+function readEditorQs(){
   var qs = [];
   for(var i=0;i<10;i++){
     qs.push([
-      (document.getElementById('eq'+i).value.replace(/^\s+|\s+$/g,'') || ('第'+(i+1)+'题')).replace(/TA/g,name),
+      (document.getElementById('eq'+i).value.replace(/^\s+|\s+$/g,'') || ('第'+(i+1)+'题')),
       document.getElementById('ea'+i).value.replace(/^\s+|\s+$/g,'') || '选项 A',
       document.getElementById('eb'+i).value.replace(/^\s+|\s+$/g,'') || '选项 B',
       QUESTIONS[i][3]
     ]);
   }
+  return qs;
+}
+function isDefaultQs(qs){
+  /* 只比对题目文字；答案会以 10 位开关的形式打包进短链，无需一致 */
+  for(var i=0;i<qs.length;i++){
+    if(qs[i][0]!==DEFAULT_QS[i][0] || qs[i][1]!==DEFAULT_QS[i][1] ||
+       qs[i][2]!==DEFAULT_QS[i][2]) return false;
+  }
+  return true;
+}
+function makeLink(){
+  var name = document.getElementById('creatorName').value.replace(/^\s+|\s+$/g,'') || '阿蓝';
+  OWNER = name; applyOwner();
+  var qs = readEditorQs();
   QUESTIONS = qs;
-  var base = location.href.split('#')[0];
-  var url = base + '#g=' + b64e(JSON.stringify({ c:name, q:qs }));
+  var base = location.origin + location.pathname;   /* 去掉多余参数，链接更短 */
+  var url;
+  if(isDefaultQs(qs)){
+    /* 默认题目：只打包昵称 + 10 个答案位，链接超短 */
+    var a = '';
+    for(var i2=0;i2<10;i2++) a += qs[i2][3]===1 ? '1' : '0';
+    url = base + '#s=' + b64e(JSON.stringify({ c:name, a:a }));
+    toast('链接已生成（短链版）');
+  } else {
+    /* 自定义题目：题目打包进链接 */
+    for(var i3=0;i3<qs.length;i3++) qs[i3][0] = qs[i3][0].replace(/TA/g,name);
+    url = base + '#g=' + b64e(JSON.stringify({ c:name, q:qs }));
+    toast('链接已生成（含自定义题目，稍长）');
+  }
   document.getElementById('linkOut').value = url;
   document.getElementById('linkBox').style.display = 'block';
-  toast('链接已生成，复制发给朋友吧！');
 }
 function copyLink(){
   var inp = document.getElementById('linkOut');
@@ -841,14 +883,49 @@ function copyLink(){
   if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(inp.value).catch(function(){});
 }
 function initFromHash(){
-  var m = location.hash.match(/#g=(.+)$/);
-  if(!m) return false;
-  try{
-    var d = JSON.parse(b64d(m[1]));
-    if(!d || !d.c || !d.q) return false;
-    QUESTIONS = d.q; OWNER = String(d.c).slice(0,12);
-    return true;
-  }catch(e){ return false; }
+  var h = location.hash || '';
+  /* 1) 祝福链接：#r=xxx —— 主人点开朋友发来的链接，祝福自动收下 */
+  var mr = h.match(/#r=(.+)$/);
+  if(mr){
+    try{
+      var d = JSON.parse(b64d(mr[1]));
+      if(d && d.f && d.m){
+        addToNotes(d);
+        setTimeout(function(){
+          toast('已收下 '+d.f+' 的祝福 · 点击烟花昵称查看');
+          go('sc-show');
+        }, 800);
+      }
+    }catch(e){}
+    return false;
+  }
+  /* 2) 短邀请链接：#s=xxx —— 使用默认题目，只带昵称和答案 */
+  var ms = h.match(/#s=([A-Za-z0-9\-_]+)$/);
+  if(ms){
+    try{
+      var s = JSON.parse(b64d(ms[1]));
+      if(s && s.c && s.a && s.a.length===DEFAULT_QS.length){
+        OWNER = String(s.c).slice(0,12);
+        QUESTIONS = [];
+        for(var i=0;i<DEFAULT_QS.length;i++){
+          var q = DEFAULT_QS[i].slice();
+          q[0] = q[0].replace(/TA/g, OWNER);
+          q[3] = s.a.charAt(i)==='1' ? 1 : 0;
+          QUESTIONS.push(q);
+        }
+        return true;
+      }
+    }catch(e){}
+  }
+  /* 3) 完整邀请链接：#g=xxx —— 自定义题目 */
+  var m = h.match(/#g=(.+)$/);
+  if(m){
+    try{
+      var d2 = JSON.parse(b64d(m[1]));
+      if(d2 && d2.c && d2.q){ QUESTIONS = d2.q; OWNER = String(d2.c).slice(0,12); return true; }
+    }catch(e){}
+  }
+  return false;
 }
 
 /* ---------- init ---------- */
@@ -862,6 +939,7 @@ function applyOwner(){
   var qn = document.getElementById('qn'); if(qn) qn.textContent = OWNER;
   var rns = document.querySelectorAll('.rn');
   for(var j=0;j<rns.length;j++) rns[j].textContent = OWNER;
+  if(typeof buildShow === 'function') buildShow();
 }
 GUEST_MODE = initFromHash();
 if(GUEST_MODE){
