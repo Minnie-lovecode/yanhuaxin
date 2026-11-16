@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>烟花信 · 把祝福随烟花送达</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -196,12 +196,17 @@
   /* ---------- 手机全屏适配 ---------- */
   @media (max-width: 520px) {
     body { padding:0; gap:0; justify-content:flex-start; }
-    .proto-nav { display:none; }
+    .proto-nav {
+      position:fixed; top:0; left:0; right:0; z-index:99; max-width:none;
+      background:rgba(4,7,26,.92); backdrop-filter:blur(6px);
+      padding:7px 8px; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch;
+      justify-content:flex-start; border-bottom:1px solid rgba(255,255,255,.08);
+    }
     .phone {
       width:100vw; height:100vh; height:100dvh;
       border-radius:0; box-shadow:none;
     }
-    .topbar { padding-top:calc(20px + env(safe-area-inset-top,0px)); }
+    .topbar { padding-top:calc(58px + env(safe-area-inset-top,0px)); }
     .foot-pad { height:calc(24px + env(safe-area-inset-bottom,0px)); }
   }
 </style>
@@ -402,9 +407,9 @@
 </div>
 
 <script>
-const COLORS = { gold:'#FFD166', coral:'#FF6B6B', pink:'#FF8FAB', teal:'#4ECDC4', violet:'#A78BFA' };
-const PAIRS = { gold:'#FFF3B0', coral:'#FFC2A0', pink:'#FFD6E3', teal:'#C4FFF2', violet:'#DCD1FF' };
-const DEFAULT_QS = [
+var COLORS = { gold:'#FFD166', coral:'#FF6B6B', pink:'#FF8FAB', teal:'#4ECDC4', violet:'#A78BFA' };
+var PAIRS = { gold:'#FFF3B0', coral:'#FFC2A0', pink:'#FFD6E3', teal:'#C4FFF2', violet:'#DCD1FF' };
+var DEFAULT_QS = [
   ['TA 的跨年夜仪式感更多来自？','早早写好新年愿望清单','临场跟着气氛走',0],
   ['TA 跨年最想和谁一起过？','一群朋友热闹倒数','一两个好友安静聊天',1],
   ['更接近 TA 的理想跨年是？','山顶看日出迎接新年','城市广场看烟花倒数',0],
@@ -416,45 +421,60 @@ const DEFAULT_QS = [
   ['TA 的年度关键词是？','稳稳的幸福','疯狂成长',0],
   ['对 TA 来说，跨年最重要的是？','满满的仪式感','爱的人都在身边',1]
 ];
-let QUESTIONS = DEFAULT_QS.map(q=>q.slice());
-let SHOW_NOTES = [
+var QUESTIONS = (function(){
+  var arr = [];
+  for(var i=0;i<DEFAULT_QS.length;i++) arr.push(DEFAULT_QS[i].slice());
+  return arr;
+})();
+var SHOW_NOTES = [
   { name:'小鹿',   color:'gold',   pub:true, score:9, msg:'新年也要闪闪发光呀！烟花是你，我也是。——小鹿' },
   { name:'阿伟',   color:'gold',   pub:true, score:8, gala:true, msg:'8/10！我对你的了解可是刻在 DNA 里的。金色满堂，新年暴富！' },
   { name:'糖糖',   color:'pink',   pub:true, score:6, msg:'认识你的第 4 年，希望 2027 我们还要一起倒数。' },
   { name:'神秘朋友', color:'violet', pub:false, score:3 },
   { name:'大鹏',   color:'teal',   pub:true, score:5, msg:'祝你新的一年烦恼清零，快乐加满！' }
 ];
-let OWNER = '阿蓝';
-let GUEST_MODE = false;
+var OWNER = '阿蓝';
+var GUEST_MODE = false;
 
-/* ---------- 编码工具：把题目/祝福压进链接 ---------- */
-const b64e = s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-const b64d = s => decodeURIComponent(escape(atob(s.replace(/-/g,'+').replace(/_/g,'/'))));
+/* ---------- 编码工具（ES5 兼容） ---------- */
+function b64e(s){
+  return btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function b64d(s){
+  return decodeURIComponent(escape(atob(s.replace(/-/g,'+').replace(/_/g,'/'))));
+}
+function pad2(n){
+  n = String(n);
+  while(n.length < 2) n = '0' + n;
+  return n;
+}
 
-let qIdx = 0, score = 0, guestName = '小鹿', privacy = 0, myAnswers = [];
+var qIdx = 0, score = 0, guestName = '小鹿', privacy = 0, myAnswers = [];
 
 /* ---------- helpers ---------- */
 function go(id){
-  const el = document.getElementById(id);
+  var el = document.getElementById(id);
   if(!el) return;
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  var screens = document.querySelectorAll('.screen');
+  for(var i=0;i<screens.length;i++) screens[i].classList.remove('on');
   el.classList.add('on');
   el.scrollTop = 0;
-  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.t===id));
+  var btns = document.querySelectorAll('#nav button');
+  for(var j=0;j<btns.length;j++) btns[j].classList.toggle('on', btns[j].getAttribute('data-t')===id);
   if(id==='sc-result'){ fireResult(); }
   if(id==='sc-show') finale(4, 900);
 }
 function toast(msg){
-  const t = document.getElementById('toast');
+  var t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('on');
-  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('on'), 2200);
+  clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove('on'); }, 2200);
 }
 function closeModal(){ document.getElementById('modal').classList.remove('on'); }
 
 /* ---------- decorations ---------- */
 function spawnStars(el, n){
-  for(let i=0;i<n;i++){
-    const s = document.createElement('span'); s.className='star';
+  for(var i=0;i<n;i++){
+    var s = document.createElement('span'); s.className='star';
     s.style.left = Math.random()*100+'%';
     s.style.top = Math.random()*55+'%';
     s.style.animationDelay = Math.random()*3+'s';
@@ -463,9 +483,9 @@ function spawnStars(el, n){
   }
 }
 function spawnConfetti(el, n){
-  const palette = ['#FFD166','#FF8F6B','#7FD7C9','#FF8FAB','#FFFFFF'];
-  for(let i=0;i<n;i++){
-    const c = document.createElement('span'); c.className='conf';
+  var palette = ['#FFD166','#FF8F6B','#7FD7C9','#FF8FAB','#FFFFFF'];
+  for(var i=0;i<n;i++){
+    var c = document.createElement('span'); c.className='conf';
     c.style.left = Math.random()*100+'%';
     c.style.width = (2+Math.random()*3)+'px';
     c.style.height = (4+Math.random()*5)+'px';
@@ -477,13 +497,13 @@ function spawnConfetti(el, n){
   }
 }
 function spawnSkyline(el){
-  let x=0;
+  var x=0;
   while(x<392){
-    const w = 26+Math.random()*44, h = 18+Math.random()*80;
-    const b = document.createElement('div'); b.className='bldg';
+    var w = 26+Math.random()*44, h = 18+Math.random()*80;
+    var b = document.createElement('div'); b.className='bldg';
     b.style.left=x+'px'; b.style.width=w+'px'; b.style.height=h+'px';
-    for(let i=0;i<Math.random()*4;i++){
-      const win=document.createElement('div'); win.className='win';
+    for(var i=0;i<Math.random()*4;i++){
+      var win=document.createElement('div'); win.className='win';
       win.style.left=(6+Math.random()*(w-16))+'px';
       win.style.top=(8+Math.random()*(h-20))+'px';
       b.appendChild(win);
@@ -492,36 +512,36 @@ function spawnSkyline(el){
   }
 }
 function makeFirework(layer, opt){
-  const fw = document.createElement('div');
+  var fw = document.createElement('div');
   fw.className = 'fw' + (opt.once ? ' once' : '');
-  const c = COLORS[opt.color] || COLORS.gold;
+  var c = COLORS[opt.color] || COLORS.gold;
   fw.style.setProperty('--c', c);
   fw.style.setProperty('--c2', PAIRS[opt.color] || '#FFF3B0');
   fw.style.setProperty('--cycle', opt.cycle || (3.4+Math.random()*1.4)+'s');
   fw.style.left = opt.x+'px'; fw.style.top = opt.y+'px';
   fw.style.transform = 'scale('+(opt.scale||1)+')';
-  const flash = document.createElement('div'); flash.className='flash';
+  var flash = document.createElement('div'); flash.className='flash';
   if(opt.delay) { flash.style.setProperty('--delay', opt.delay+'s'); fw.style.setProperty('--delay', opt.delay+'s'); }
   fw.appendChild(flash);
-  const N1 = opt.count || 16, N2 = 8, N3 = 10;
+  var N1 = opt.count || 16, N2 = 8, N3 = 10;
   function addP(cls, dist, extra){
-    const p=document.createElement('span'); p.className=cls;
+    var p=document.createElement('span'); p.className=cls;
     p.style.setProperty('--a',(Math.random()*360)+'deg');
     p.style.setProperty('--d',dist+'px');
     p.style.setProperty('--delay',(extra.delay!==undefined?extra.delay:Math.random()*.4)+'s');
     fw.appendChild(p);
   }
-  for(let i=0;i<N1;i++) addP('p', 52+Math.random()*34, {});            /* 外环大粒子 */
-  for(let i=0;i<N2;i++) addP('p2', 60+Math.random()*26, {delay:.15});  /* 双色大光点 */
-  for(let i=0;i<N3;i++) addP('p3', 18+Math.random()*20, {delay:.45});  /* 内环白色碎星 */
-  for(let i=0;i<6;i++)  addP('p3', 78+Math.random()*18, {delay:.25});  /* 外圈白噪点 */
+  for(var i=0;i<N1;i++) addP('p', 52+Math.random()*34, {});
+  for(var k=0;k<N2;k++) addP('p2', 60+Math.random()*26, {delay:.15});
+  for(var m=0;m<N3;m++) addP('p3', 18+Math.random()*20, {delay:.45});
+  for(var n2=0;n2<6;n2++) addP('p3', 78+Math.random()*18, {delay:.25});
   if(opt.gala){
-    fw.style.setProperty('--c','#FFD166');                             /* 金色满堂：双层金环 */
-    for(let i=0;i<14;i++) addP('g', 86+Math.random()*30, {delay:.35});
-    for(let i=0;i<10;i++) addP('g', 40+Math.random()*16, {delay:.7});
+    fw.style.setProperty('--c','#FFD166');
+    for(var g1=0;g1<14;g1++) addP('g', 86+Math.random()*30, {delay:.35});
+    for(var g2=0;g2<10;g2++) addP('g', 40+Math.random()*16, {delay:.7});
   }
   if(opt.name){
-    const chip=document.createElement('span');
+    var chip=document.createElement('span');
     chip.className='fw-name'+(opt.private?' lock':'');
     chip.textContent = opt.private ? '🔒 '+opt.name : opt.name;
     if(opt.onclick) chip.onclick = opt.onclick;
@@ -530,45 +550,52 @@ function makeFirework(layer, opt){
   layer.appendChild(fw);
   return fw;
 }
-document.querySelectorAll('.stars').forEach(el=>spawnStars(el,26));
-document.querySelectorAll('.confetti').forEach(el=>spawnConfetti(el,16));
-document.querySelectorAll('[data-skyline]').forEach(spawnSkyline);
+(function(){
+  var stars = document.querySelectorAll('.stars');
+  for(var i=0;i<stars.length;i++) spawnStars(stars[i],26);
+  var confs = document.querySelectorAll('.confetti');
+  for(var j=0;j<confs.length;j++) spawnConfetti(confs[j],16);
+  var skies = document.querySelectorAll('[data-skyline]');
+  for(var k=0;k<skies.length;k++) spawnSkyline(skies[k]);
+})();
 
 /* ---------- 零点倒计时 ---------- */
 function tick(){
-  const target = new Date('2027-01-01T00:00:00+08:00').getTime();
-  let ms = Math.max(0, target - Date.now());
-  const d = Math.floor(ms/864e5); ms -= d*864e5;
-  const h = String(Math.floor(ms/36e5)).padStart(2,'0'); ms -= h*36e5;
-  const m = String(Math.floor(ms/6e4)).padStart(2,'0');
-  const s = String(Math.floor(ms/1e3)%60).padStart(2,'0');
-  const txt = d+'天 '+h+':'+m+':'+s;
-  const a=document.getElementById('cd-invite'), b=document.getElementById('cd-show');
-  if(a) a.textContent = txt; if(b) b.textContent = txt;
+  var target = new Date('2027-01-01T00:00:00+08:00').getTime();
+  var ms = Math.max(0, target - Date.now());
+  var d = Math.floor(ms/864e5); ms -= d*864e5;
+  var h = pad2(Math.floor(ms/36e5)); ms -= Math.floor(ms/36e5)*36e5;
+  var mi = pad2(Math.floor(ms/6e4));
+  var s = pad2(Math.floor(ms/1e3)%60);
+  var txt = d+'天 '+h+':'+mi+':'+s;
+  var a=document.getElementById('cd-invite'), b=document.getElementById('cd-show');
+  if(a) a.textContent = txt;
+  if(b) b.textContent = txt;
 }
 tick(); setInterval(tick,1000);
 
 /* ---------- 答题 ---------- */
 function startQuiz(){
-  guestName = document.getElementById('guestName').value.trim() || '小鹿';
+  guestName = document.getElementById('guestName').value.replace(/^\s+|\s+$/g,'') || '小鹿';
   qIdx = 0; score = 0; myAnswers = [];
   go('sc-quiz'); renderQ();
 }
 function renderQ(){
-  const q = QUESTIONS[qIdx];
+  var q = QUESTIONS[qIdx];
   document.getElementById('qidx').textContent = qIdx+1;
   document.getElementById('qbar').style.width = (qIdx/10*100)+'%';
   document.getElementById('qtext').textContent = q[0];
   document.getElementById('optAt').textContent = q[1];
   document.getElementById('optBt').textContent = q[2];
-  ['optA','optB'].forEach(id=>document.getElementById(id).classList.remove('sel'));
+  document.getElementById('optA').classList.remove('sel');
+  document.getElementById('optB').classList.remove('sel');
 }
 function pick(i){
-  const q = QUESTIONS[qIdx];
+  var q = QUESTIONS[qIdx];
   document.getElementById(i?'optB':'optA').classList.add('sel');
   myAnswers[qIdx] = i;
   if(q[3]===i) score++;
-  setTimeout(()=>{
+  setTimeout(function(){
     qIdx++;
     if(qIdx<10){ renderQ(); }
     else{ document.getElementById('qbar').style.width='100%'; showResult(); }
@@ -576,63 +603,63 @@ function pick(i){
 }
 function showResult(){
   document.getElementById('scoreNum').textContent = score;
-  const R = score>=10 ? ['灵魂知己','你们之间大概装了读心术，满分烟花为你点亮'] :
-            score>=8  ? ['默契满分','你的烟花照亮了整片夜空，TA 一定很感动'] :
-            score>=6  ? ['老友认证','不错的默契！再加把劲就能爬到烟花顶端'] :
-            score>=4  ? ['有待补课','一半的题目答对啦，新的一年多和 TA 聊聊天'] :
-                        ['面基之交','没关系，烟花依然为你绽放，友谊从今天升级'];
+  var R;
+  if(score>=10)      R = ['灵魂知己','你们之间大概装了读心术，满分烟花为你点亮'];
+  else if(score>=8)  R = ['默契满分','你的烟花照亮了整片夜空，TA 一定很感动'];
+  else if(score>=6)  R = ['老友认证','不错的默契！再加把劲就能爬到烟花顶端'];
+  else if(score>=4)  R = ['有待补课','一半的题目答对啦，新的一年多和 TA 聊聊天'];
+  else               R = ['面基之交','没关系，烟花依然为你绽放，友谊从今天升级'];
   document.getElementById('rankTitle').textContent = R[0];
   document.getElementById('rankDesc').textContent = R[1];
   go('sc-result');
 }
 function fireResult(){
-  const layer = document.getElementById('fw-result');
+  var layer = document.getElementById('fw-result');
   layer.innerHTML = '';
-  const gala = score>=8;
-  const badge = document.getElementById('galaBadge');
+  var gala = score>=8;
+  var badge = document.getElementById('galaBadge');
   badge.classList.toggle('on', gala);
   badge.textContent = gala ? '🎆 解锁「金色满堂」烟花 · 你在榜单顶端' : '答对 8 题以上可解锁「金色满堂」烟花';
-  const main = gala ? 'gold' : ['coral','pink','teal','violet'][Math.floor(Math.random()*4)];
+  var main = gala ? 'gold' : ['coral','pink','teal','violet'][Math.floor(Math.random()*4)];
   makeFirework(layer, {x:112, y:52, color:main, once:true, count:18, scale:1.2, name:guestName, delay:0, gala:gala});
   makeFirework(layer, {x:238, y:118, color: gala?'gold':'coral', once:true, count:12, scale:.65, delay:.5});
   makeFirework(layer, {x:60,  y:170, color:'teal',  once:true, count:10, scale:.5,  delay:1.0});
-  setTimeout(()=>finale(3, 700, layer), 1600);
+  setTimeout(function(){ finale(3, 700, layer); }, 1600);
 }
-/* 终场烟花雨：在指定图层随机连放 n 朵 */
 function finale(n, gap, layerId){
-  const layer = layerId || document.getElementById('fw-show');
-  let i = 0;
-  const timer = setInterval(()=>{
-    const fw = makeFirework(layer, {
+  var layer = layerId || document.getElementById('fw-show');
+  var i = 0;
+  var timer = setInterval(function(){
+    var fw = makeFirework(layer, {
       x: 30+Math.random()*230, y: 50+Math.random()*240,
       color: ['gold','coral','pink','teal','violet'][Math.floor(Math.random()*5)],
       once:true, count:12+Math.floor(Math.random()*8), scale:.5+Math.random()*.7
     });
-    setTimeout(()=>fw.remove(), 2300);
-    if(++i>=n) clearInterval(timer);
+    (function(f){ setTimeout(function(){ if(f.remove) f.remove(); else if(f.parentNode) f.parentNode.removeChild(f); }, 2300); })(fw);
+    i++;
+    if(i>=n) clearInterval(timer);
   }, gap);
 }
-/* 烟花秀页面：循环自动放烟花 + 点击夜空放烟花 */
 (function showLoop(){
-  const layer = document.getElementById('fw-show');
-  setInterval(()=>{
+  var layer = document.getElementById('fw-show');
+  setInterval(function(){
     if(!document.getElementById('sc-show').classList.contains('on')) return;
-    const fw = makeFirework(layer, {
+    var fw = makeFirework(layer, {
       x: 20+Math.random()*240, y: 60+Math.random()*230,
       color: ['gold','coral','pink','teal','violet'][Math.floor(Math.random()*5)],
       count:12+Math.floor(Math.random()*8), scale:.55+Math.random()*.65
     });
-    setTimeout(()=>fw.remove(), 5200);
+    setTimeout(function(){ if(fw.remove) fw.remove(); else if(fw.parentNode) fw.parentNode.removeChild(fw); }, 5200);
   }, 2100);
-  layer.addEventListener('click', e=>{
+  layer.addEventListener('click', function(e){
     if(e.target!==layer) return;
-    const r = layer.getBoundingClientRect();
-    const fw = makeFirework(layer, {
+    var r = layer.getBoundingClientRect();
+    var fw = makeFirework(layer, {
       x: e.clientX-r.left-80, y: e.clientY-r.top-80,
       color: ['gold','coral','pink','teal','violet'][Math.floor(Math.random()*5)],
       once:true, count:16, scale:.9+Math.random()*.4
     });
-    setTimeout(()=>fw.remove(), 2300);
+    setTimeout(function(){ if(fw.remove) fw.remove(); else if(fw.parentNode) fw.parentNode.removeChild(fw); }, 2300);
   });
 })();
 function setPrivacy(v){
@@ -648,78 +675,89 @@ function openReport(){
   go('sc-report');
 }
 function renderReport(){
-  const list = document.getElementById('rpList');
+  var list = document.getElementById('rpList');
   document.getElementById('rpScore').textContent = score;
   list.innerHTML = '';
   if(myAnswers.length<10){
     list.innerHTML = '<div class="rp"><div class="rq"><span>还没有完整的答题记录</span></div><div class="ra">完成一次答题后，这里会显示每一题的对错详情。</div></div>';
     return;
   }
-  QUESTIONS.forEach((q,i)=>{
-    const mine = myAnswers[i], right = q[3]===mine;
-    const item = document.createElement('div'); item.className='rp';
+  for(var i=0;i<QUESTIONS.length;i++){
+    var q = QUESTIONS[i], mine = myAnswers[i], right = q[3]===mine;
+    var item = document.createElement('div'); item.className='rp';
     item.innerHTML =
       '<div class="rq"><span>'+(i+1)+' · '+q[0]+'</span><span class="mk '+(right?'ok':'no')+'">'+(right?'✓':'✗')+'</span></div>'+
       '<div class="ra">你的答案：<b>'+ (mine===0?'A':'B') +' · '+q[1+mine]+'</b><br>'+
       (right ? '和 '+OWNER+' 想的一样！' : OWNER+' 的真实答案：'+(q[3]===0?'A':'B')+' · '+q[1+q[3]]) +'</div>';
     list.appendChild(item);
-  });
+  }
 }
 function reAnswer(){ startQuiz(); }
 function submitNote(){
-  const msg = document.getElementById('noteText').value.trim();
+  var msg = document.getElementById('noteText').value.replace(/^\s+|\s+$/g,'');
   if(!msg){ toast('先写下你的祝福吧～'); return; }
-  const code = b64e(JSON.stringify({f:guestName,m:msg,p:privacy,s:score}));
+  var code = b64e(JSON.stringify({f:guestName,m:msg,p:privacy,s:score}));
   document.getElementById('mTitle').textContent = '纸条已放入心愿瓶 🎇';
   document.getElementById('mBody').textContent = '把下面的「祝福码」复制发给 '+OWNER+'（微信直接粘贴即可），TA 收到后放进烟花秀，你的祝福就会出现在 TA 的夜空里。';
-  const ta = document.getElementById('mCode');
+  var ta = document.getElementById('mCode');
   ta.style.display = 'block'; ta.value = code;
   document.getElementById('mCopy').style.display = 'block';
   document.getElementById('modal').classList.add('on');
 }
 function copyCode(){
-  const ta = document.getElementById('mCode');
-  ta.select(); ta.setSelectionRange(0, 9999);
+  var ta = document.getElementById('mCode');
+  ta.select();
+  if(ta.setSelectionRange) ta.setSelectionRange(0, 9999);
   try{ document.execCommand('copy'); toast('祝福码已复制，去发给 '+OWNER+' 吧！'); }catch(e){ toast('长按文字手动复制'); }
-  if(navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(()=>{});
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).catch(function(){});
 }
 
-/* ---------- 烟花秀纸条（演示数据 + 朋友发来的祝福码） ---------- */
-const LS_KEY = 'yanhuaxin_notes';
+/* ---------- 烟花秀纸条 ---------- */
+var LS_KEY = 'yanhuaxin_notes';
 function loadNotes(){
   try{ return JSON.parse(localStorage.getItem(LS_KEY)||'[]'); }catch(e){ return []; }
 }
 function buildShow(){
-  const layer = document.getElementById('fw-show');
-  layer.querySelectorAll('.fw').forEach(f=>f.remove());
-  const stored = loadNotes().map(n=>Object.assign({}, n, { gala:(n.score||0)>=8 }));
-  const all = SHOW_NOTES.concat(stored);
-  const pos = [[64,148],[188,96],[282,186],[146,286],[248,318],[40,268],[110,368],[300,300],[60,220]];
-  all.forEach((n,i)=>{
-    const p = pos[i%pos.length];
-    makeFirework(layer, {
-      x:p[0], y:p[1], color:n.color, count:14, cycle:'5.2s',
-      scale:(((n.gala)||(n.score||0)>=8)?1.05:.85)+Math.random()*.3, gala:!!n.gala,
-      name:n.name, private:!n.pub,
-      onclick:()=>{
-        document.getElementById('mTitle').textContent = n.pub ? n.name+' 的纸条' : '🤫 这是个秘密';
-        document.getElementById('mBody').textContent = n.pub ? n.msg : n.name+' 把祝福藏了起来，只有主人（'+OWNER+'）零点开封心愿瓶时才能看见。';
-        document.getElementById('modal').classList.add('on');
-      }
-    });
-  });
-  const pubN = all.filter(n=>n.pub).length;
+  var layer = document.getElementById('fw-show');
+  var olds = layer.querySelectorAll('.fw');
+  for(var i=0;i<olds.length;i++){ if(olds[i].remove) olds[i].remove(); else olds[i].parentNode.removeChild(olds[i]); }
+  var raw = loadNotes(), stored = [];
+  for(var s=0;s<raw.length;s++){
+    var o = {};
+    for(var k in raw[s]) o[k] = raw[s][k];
+    o.gala = (raw[s].score||0) >= 8;
+    stored.push(o);
+  }
+  var all = SHOW_NOTES.concat(stored);
+  var pos = [[64,148],[188,96],[282,186],[146,286],[248,318],[40,268],[110,368],[300,300],[60,220]];
+  for(var j=0;j<all.length;j++){
+    (function(n, idx){
+      var p = pos[idx%pos.length];
+      makeFirework(layer, {
+        x:p[0], y:p[1], color:n.color, count:14, cycle:'5.2s',
+        scale:((n.gala||(n.score||0)>=8)?1.05:.85)+Math.random()*.3, gala:!!n.gala,
+        name:n.name, private:!n.pub,
+        onclick:function(){
+          document.getElementById('mTitle').textContent = n.pub ? n.name+' 的纸条' : '🤫 这是个秘密';
+          document.getElementById('mBody').textContent = n.pub ? n.msg : n.name+' 把祝福藏了起来，只有主人（'+OWNER+'）零点开封心愿瓶时才能看见。';
+          document.getElementById('modal').classList.add('on');
+        }
+      });
+    })(all[j], j);
+  }
+  var pubN = 0;
+  for(var p2=0;p2<all.length;p2++) if(all[p2].pub) pubN++;
   document.getElementById('cntAll').textContent = all.length;
   document.getElementById('cntPubN').textContent = pubN;
   document.getElementById('cntPub').textContent = pubN;
 }
 function collectCode(){
-  const raw = document.getElementById('codeIn').value.trim();
+  var raw = document.getElementById('codeIn').value.replace(/^\s+|\s+$/g,'');
   if(!raw){ toast('先粘贴朋友发来的祝福码哦～'); return; }
-  let d;
+  var d = null;
   try{ d = JSON.parse(b64d(raw)); }catch(e){ d = null; }
   if(!d || !d.f || !d.m){ toast('祝福码好像不对，请检查是否复制完整'); return; }
-  const notes = loadNotes();
+  var notes = loadNotes();
   notes.push({
     name:String(d.f).slice(0,12),
     color:['gold','coral','pink','teal','violet'][notes.length%5],
@@ -733,21 +771,22 @@ function collectCode(){
 
 /* ---------- 创建者：题目编辑器 & 链接生成 ---------- */
 function onOwnerRename(){
-  OWNER = document.getElementById('creatorName').value.trim() || '阿蓝';
+  OWNER = document.getElementById('creatorName').value.replace(/^\s+|\s+$/g,'') || '阿蓝';
   applyOwner();
 }
 function setAns(i,v){
   QUESTIONS[i][3] = v;
-  const a = document.getElementById('eab'+i), b = document.getElementById('ebb'+i);
+  var a = document.getElementById('eab'+i), b = document.getElementById('ebb'+i);
   if(a) a.classList.toggle('on', v===0);
   if(b) b.classList.toggle('on', v===1);
 }
 function buildEditor(){
-  const box = document.getElementById('qEdit');
+  var box = document.getElementById('qEdit');
   box.innerHTML = '';
-  QUESTIONS.forEach((q,i)=>{
-    const esc = s => s.replace(/"/g,'&quot;').replace(/</g,'&lt;');
-    const d = document.createElement('div'); d.className = 'qcard';
+  function esc(s){ return s.replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+  for(var i=0;i<QUESTIONS.length;i++){
+    var q = QUESTIONS[i];
+    var d = document.createElement('div'); d.className = 'qcard';
     d.innerHTML =
       '<div class="sub" style="font-size:12px;margin-bottom:6px;">第 '+(i+1)+' 题</div>'+
       '<input class="mininput" id="eq'+i+'" value="'+esc(q[0])+'" placeholder="题目">'+
@@ -756,39 +795,40 @@ function buildEditor(){
       '<div class="abtoggle"><button id="eab'+i+'" onclick="setAns('+i+',0)">✓ 正确答案是 A</button>'+
       '<button id="ebb'+i+'" onclick="setAns('+i+',1)">✓ 正确答案是 B</button></div>';
     box.appendChild(d);
-  });
-  QUESTIONS.forEach((q,i)=>setAns(i,q[3]));
+  }
+  for(var j=0;j<QUESTIONS.length;j++) setAns(j, QUESTIONS[j][3]);
 }
 function makeLink(){
-  const name = document.getElementById('creatorName').value.trim() || '阿蓝';
+  var name = document.getElementById('creatorName').value.replace(/^\s+|\s+$/g,'') || '阿蓝';
   OWNER = name; applyOwner();
-  const qs = [];
-  for(let i=0;i<10;i++){
+  var qs = [];
+  for(var i=0;i<10;i++){
     qs.push([
-      (document.getElementById('eq'+i).value.trim() || ('第'+(i+1)+'题')).replace(/TA/g,name),
-      document.getElementById('ea'+i).value.trim() || '选项 A',
-      document.getElementById('eb'+i).value.trim() || '选项 B',
+      (document.getElementById('eq'+i).value.replace(/^\s+|\s+$/g,'') || ('第'+(i+1)+'题')).replace(/TA/g,name),
+      document.getElementById('ea'+i).value.replace(/^\s+|\s+$/g,'') || '选项 A',
+      document.getElementById('eb'+i).value.replace(/^\s+|\s+$/g,'') || '选项 B',
       QUESTIONS[i][3]
     ]);
   }
   QUESTIONS = qs;
-  const base = location.href.split('#')[0];
-  const url = base + '#g=' + b64e(JSON.stringify({ c:name, q:qs }));
+  var base = location.href.split('#')[0];
+  var url = base + '#g=' + b64e(JSON.stringify({ c:name, q:qs }));
   document.getElementById('linkOut').value = url;
   document.getElementById('linkBox').style.display = 'block';
   toast('链接已生成，复制发给朋友吧！');
 }
 function copyLink(){
-  const inp = document.getElementById('linkOut');
-  inp.select(); inp.setSelectionRange(0, 9999);
+  var inp = document.getElementById('linkOut');
+  inp.select();
+  if(inp.setSelectionRange) inp.setSelectionRange(0, 9999);
   try{ document.execCommand('copy'); toast('已复制，快发给朋友吧！'); }catch(e){ toast('长按输入框手动复制'); }
-  if(navigator.clipboard) navigator.clipboard.writeText(inp.value).catch(()=>{});
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(inp.value).catch(function(){});
 }
 function initFromHash(){
-  const m = location.hash.match(/#g=(.+)$/);
+  var m = location.hash.match(/#g=(.+)$/);
   if(!m) return false;
   try{
-    const d = JSON.parse(b64d(m[1]));
+    var d = JSON.parse(b64d(m[1]));
     if(!d || !d.c || !d.q) return false;
     QUESTIONS = d.q; OWNER = String(d.c).slice(0,12);
     return true;
@@ -797,36 +837,43 @@ function initFromHash(){
 
 /* ---------- init ---------- */
 function applyOwner(){
-  ['inviteName','inviteName2','noteName'].forEach(id=>{
-    const el = document.getElementById(id); if(el) el.textContent = OWNER;
-  });
-  const av = document.getElementById('avatarLetter'); if(av) av.textContent = OWNER.charAt(0);
-  const qn = document.getElementById('qn'); if(qn) qn.textContent = OWNER;
-  document.querySelectorAll('.rn').forEach(el=>el.textContent=OWNER);
+  var ids = ['inviteName','inviteName2','noteName'];
+  for(var i=0;i<ids.length;i++){
+    var el = document.getElementById(ids[i]);
+    if(el) el.textContent = OWNER;
+  }
+  var av = document.getElementById('avatarLetter'); if(av) av.textContent = OWNER.charAt(0);
+  var qn = document.getElementById('qn'); if(qn) qn.textContent = OWNER;
+  var rns = document.querySelectorAll('.rn');
+  for(var j=0;j<rns.length;j++) rns[j].textContent = OWNER;
 }
 GUEST_MODE = initFromHash();
 if(GUEST_MODE){
   document.getElementById('creatorName').value = OWNER;
 } else {
-  OWNER = document.getElementById('creatorName').value.trim() || '阿蓝';
+  OWNER = document.getElementById('creatorName').value.replace(/^\s+|\s+$/g,'') || '阿蓝';
   buildEditor();
 }
 applyOwner();
-const NAV_ALL = [['sc-create','1 创建'],['sc-invite','2 邀请页'],['sc-name','3 取昵称'],['sc-quiz','4 答题'],['sc-result','5 结果'],['sc-report','6 报告'],['sc-note','7 纸条'],['sc-show','8 烟花秀']];
-const NAV = GUEST_MODE ? NAV_ALL.slice(1) : NAV_ALL;
-const nav = document.getElementById('nav');
-NAV.forEach(([t,label])=>{
-  const b=document.createElement('button'); b.textContent=label; b.dataset.t=t;
-  b.onclick=()=>{
-    if(t==='sc-report'){ openReport(); return; }
-    go(t);
-  };
-  nav.appendChild(b);
-});
+var NAV_ALL = [['sc-create','1 创建'],['sc-invite','2 邀请页'],['sc-name','3 取昵称'],['sc-quiz','4 答题'],['sc-result','5 结果'],['sc-report','6 报告'],['sc-note','7 纸条'],['sc-show','8 烟花秀']];
+var NAV = GUEST_MODE ? NAV_ALL.slice(1) : NAV_ALL;
+var nav = document.getElementById('nav');
+for(var ni=0; ni<NAV.length; ni++){
+  (function(t, label){
+    var b=document.createElement('button');
+    b.textContent=label;
+    b.setAttribute('data-t', t);
+    b.onclick=function(){
+      if(t==='sc-report'){ openReport(); return; }
+      go(t);
+    };
+    nav.appendChild(b);
+  })(NAV[ni][0], NAV[ni][1]);
+}
 document.getElementById('codeBox').style.display = GUEST_MODE ? 'none' : 'block';
-if(GUEST_MODE) nav.style.display = 'none';   /* 真实访客不需要原型导航 */
 buildShow();
 go(GUEST_MODE ? 'sc-invite' : 'sc-create');
+
 </script>
 </body>
 </html>
