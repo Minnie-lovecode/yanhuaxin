@@ -115,14 +115,14 @@
   .qcard .q { color:#e8e9f2; font-size:14px; font-weight:600; margin-bottom:8px; }
   .qcard .opt { color:#a9b0cf; font-size:13px; padding:6px 10px; border-radius:10px; background:rgba(255,255,255,.05); margin-top:6px; }
   .qcard .opt b { color:#f5c15c; margin-right:6px; font-weight:600; }
-  .mininput { width:100%; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.16); border-radius:10px; color:#e8e9f2; font-size:13px; padding:9px 10px; outline:none; }
+  .mininput { width:100%; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.16); border-radius:10px; color:#e8e9f2; font-size:16px; padding:10px 12px; outline:none; }
   .mininput:focus { border-color:rgba(245,193,92,.6); }
   .abtoggle { display:flex; gap:8px; margin-top:8px; }
   .abtoggle button { flex:1; padding:9px; border-radius:10px; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.06); color:#a9b0cf; font-size:12px; cursor:pointer; }
   .abtoggle button.on { border-color:#f5c15c; background:rgba(245,193,92,.16); color:#ffd97a; font-weight:600; }
   .linkbox { display:none; margin-top:14px; }
   .linkbox .row { display:flex; gap:8px; }
-  .linkbox .row .input { font-size:12px; padding:12px; flex:1; min-width:0; }
+  .linkbox .row .input { font-size:16px; padding:12px; flex:1; min-width:0; }
   .linkbox .row .btn { width:auto; padding:12px 18px; flex:none; font-size:14px; }
 
   /* ---------- screen 4: quiz ---------- */
@@ -153,7 +153,7 @@
   }
   .paper textarea {
     width:100%; height:132px; border:none; background:transparent; outline:none; resize:none;
-    font-size:15px; line-height:31px; color:#4a3b20; font-family:inherit;
+    font-size:16px; line-height:31px; color:#4a3b20; font-family:inherit;
   }
   .seg { display:flex; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14); border-radius:16px; padding:4px; margin-top:22px; }
   .seg button { flex:1; border:none; background:transparent; color:#a9b0cf; font-size:14px; padding:12px 0; border-radius:12px; cursor:pointer; line-height:1.4; }
@@ -370,7 +370,7 @@
     <div class="grow"></div>
     <div id="codeBox" style="position:relative;z-index:4;display:none;">
       <div style="display:flex;gap:8px;">
-        <input class="input" id="codeIn" placeholder="粘贴朋友发来的祝福码" style="font-size:13px;padding:12px;flex:1;min-width:0;">
+        <input class="input" id="codeIn" placeholder="粘贴朋友发来的祝福码" style="font-size:16px;padding:12px;flex:1;min-width:0;">
         <button class="btn" style="width:auto;padding:12px 18px;flex:none;font-size:14px;" onclick="collectCode()">收下</button>
       </div>
       <p class="sub" style="font-size:11px;margin-top:6px;">朋友答完题后会把「祝福码」发给你，粘贴到这里，TA 的烟花和纸条就会出现在你的夜空里。</p>
@@ -383,7 +383,7 @@
       </div>
       <span class="tag" style="flex:none;">2027</span>
     </div>
-    <p class="sheet-hint">烟花信 · 所有祝福将于 12 月 31 日 24:00 随零点烟花一同开封 🎇</p>
+    <p class="sheet-hint">烟花信 v3 · 所有祝福将于 12 月 31 日 24:00 随零点烟花一同开封 🎇</p>
     <div class="foot-pad"></div>
   </section>
 
@@ -391,7 +391,7 @@
     <div class="sheet">
       <h3 id="mTitle"></h3>
       <p id="mBody"></p>
-      <textarea id="mCode" readonly style="display:none;width:100%;height:84px;margin-top:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:10px;color:#ffd97a;font-size:12px;padding:10px;outline:none;font-family:monospace;"></textarea>
+      <textarea id="mCode" readonly style="display:none;width:100%;height:84px;margin-top:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:10px;color:#ffd97a;font-size:16px;padding:10px;outline:none;font-family:monospace;"></textarea>
       <button class="btn ghost" id="mCopy" style="display:none;margin-top:10px;" onclick="copyCode()">复制祝福码</button>
       <button class="btn close" onclick="closeModal()">好的</button>
     </div>
