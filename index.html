@@ -192,6 +192,18 @@
   .topbar { padding-top:56px; flex:none; }
   .grow { flex:1; }
   .foot-pad { height:40px; flex:none; }
+
+  /* ---------- 手机全屏适配 ---------- */
+  @media (max-width: 520px) {
+    body { padding:0; gap:0; justify-content:flex-start; }
+    .proto-nav { display:none; }
+    .phone {
+      width:100vw; height:100vh; height:100dvh;
+      border-radius:0; box-shadow:none;
+    }
+    .topbar { padding-top:calc(20px + env(safe-area-inset-top,0px)); }
+    .foot-pad { height:calc(24px + env(safe-area-inset-bottom,0px)); }
+  }
 </style>
 </head>
 <body>
@@ -812,6 +824,7 @@ NAV.forEach(([t,label])=>{
   nav.appendChild(b);
 });
 document.getElementById('codeBox').style.display = GUEST_MODE ? 'none' : 'block';
+if(GUEST_MODE) nav.style.display = 'none';   /* 真实访客不需要原型导航 */
 buildShow();
 go(GUEST_MODE ? 'sc-invite' : 'sc-create');
 </script>
