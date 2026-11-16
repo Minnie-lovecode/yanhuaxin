@@ -115,6 +115,15 @@
   .qcard .q { color:#e8e9f2; font-size:14px; font-weight:600; margin-bottom:8px; }
   .qcard .opt { color:#a9b0cf; font-size:13px; padding:6px 10px; border-radius:10px; background:rgba(255,255,255,.05); margin-top:6px; }
   .qcard .opt b { color:#f5c15c; margin-right:6px; font-weight:600; }
+  .mininput { width:100%; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.16); border-radius:10px; color:#e8e9f2; font-size:13px; padding:9px 10px; outline:none; }
+  .mininput:focus { border-color:rgba(245,193,92,.6); }
+  .abtoggle { display:flex; gap:8px; margin-top:8px; }
+  .abtoggle button { flex:1; padding:9px; border-radius:10px; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.06); color:#a9b0cf; font-size:12px; cursor:pointer; }
+  .abtoggle button.on { border-color:#f5c15c; background:rgba(245,193,92,.16); color:#ffd97a; font-weight:600; }
+  .linkbox { display:none; margin-top:14px; }
+  .linkbox .row { display:flex; gap:8px; }
+  .linkbox .row .input { font-size:12px; padding:12px; flex:1; min-width:0; }
+  .linkbox .row .btn { width:auto; padding:12px 18px; flex:none; font-size:14px; }
 
   /* ---------- screen 4: quiz ---------- */
   .progress { height:6px; border-radius:3px; background:rgba(255,255,255,.12); overflow:hidden; margin-top:10px; }
@@ -194,32 +203,27 @@
   <section class="screen" id="sc-create">
     <div class="stars"></div>
     <div class="topbar"><span class="tag">烟花信 · 创建挑战</span></div>
-    <div style="margin-top:26px;">
+    <div style="margin-top:18px;">
       <h1>创建你的<br>跨年烟花 🎆</h1>
-      <p class="sub" style="margin-top:10px;">邀请朋友回答关于你的 10 个日常小问题，<br>答对越多，烟花越盛大。</p>
+      <p class="sub" style="margin-top:10px;">填好昵称和 10 道题，一键生成邀请链接发给朋友。<br>题目里的「TA」会自动替换成你的昵称。</p>
     </div>
-    <div style="margin-top:24px;">
+    <div style="margin-top:20px;">
       <p class="sub" style="font-size:13px;margin-bottom:8px;">你的昵称（朋友会在邀请页看到）</p>
-      <input class="input" id="creatorName" value="阿蓝" placeholder="给自己取个昵称">
+      <input class="input" id="creatorName" value="阿蓝" placeholder="给自己取个昵称" oninput="onOwnerRename()">
     </div>
-    <div style="margin-top:22px;">
-      <p class="sub" style="font-size:13px;">10 道二选一日常题 · 已自动生成</p>
-      <div class="qcard">
-        <div class="q">1 · 阿蓝的跨年夜仪式感更多来自？</div>
-        <div class="opt"><b>A</b>早早写好新年愿望清单</div>
-        <div class="opt"><b>B</b>临场跟着气氛走</div>
-      </div>
-      <div class="qcard">
-        <div class="q">2 · 阿蓝跨年餐桌必备的是？</div>
-        <div class="opt"><b>A</b>热气腾腾的火锅</div>
-        <div class="opt"><b>B</b>滋滋作响的烧烤</div>
-      </div>
-      <div class="qcard" style="text-align:center;">
-        <div class="opt" style="text-align:center;">… 共 10 题，可随时替换成自己的题目</div>
-      </div>
+    <div style="margin-top:20px;">
+      <p class="sub" style="font-size:13px;">10 道二选一题 · 点击下方按钮设定每题的正确答案</p>
+      <div id="qEdit" style="margin-top:8px;"></div>
     </div>
     <div class="grow"></div>
-    <button class="btn" onclick="toast('邀请链接已生成，快分享到群里吧！')">生成邀请链接 · 分享给朋友</button>
+    <button class="btn" onclick="makeLink()">生成邀请链接 · 发给朋友</button>
+    <div class="linkbox" id="linkBox">
+      <div class="row">
+        <input class="input" id="linkOut" readonly placeholder="链接会出现在这里">
+        <button class="btn" onclick="copyLink()">复制</button>
+      </div>
+      <p class="sub" style="font-size:12px;margin-top:8px;">复制这条链接发到微信 / 朋友圈，朋友点开就是你的专属答题页。</p>
+    </div>
     <div class="foot-pad"></div>
   </section>
 
@@ -233,7 +237,7 @@
       <span class="tag live">🎆 烟花信 · 距离 2027 还有 <b id="cd-invite">--</b></span>
     </div>
     <div style="margin-top:60px;position:relative;z-index:4;">
-      <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#ffd97a,#f5a623);display:flex;align-items:center;justify-content:center;font-size:30px;color:#241a05;font-weight:600;box-shadow:0 0 30px rgba(255,166,35,.5);">蓝</div>
+      <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#ffd97a,#f5a623);display:flex;align-items:center;justify-content:center;font-size:30px;color:#241a05;font-weight:600;box-shadow:0 0 30px rgba(255,166,35,.5);" id="avatarLetter">蓝</div>
       <h1 style="margin-top:20px;"><span id="inviteName">阿蓝</span> 邀请你<br>参加 TA 的跨年烟花</h1>
       <p class="sub" style="margin-top:12px;">回答 10 道关于 TA 的二选一小题，<br>答对越多，你燃放的烟花就越盛大，<br>最后还能给 TA 投一张新年纸条。</p>
     </div>
@@ -347,11 +351,18 @@
     <div class="topbar" style="position:relative;z-index:4;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <span class="tag"><span class="rn">阿蓝</span> 的跨年烟花秀</span>
-        <span class="sub" style="font-size:12px;">已收到 5 张纸条 · 4 张公开</span>
+        <span class="sub" style="font-size:12px;">已收到 <b id="cntAll" style="color:#f5c15c;">5</b> 张纸条 · <b id="cntPubN" style="color:#f5c15c;">4</b> 张公开</span>
       </div>
       <p class="sub" style="font-size:12px;margin-top:8px;">点击昵称查看 TA 的话 · 点击夜空也能放一朵 · <span style="color:#ffd97a;">金色烟花</span>属于答对 8 题以上的王者</p>
     </div>
     <div class="grow"></div>
+    <div id="codeBox" style="position:relative;z-index:4;display:none;">
+      <div style="display:flex;gap:8px;">
+        <input class="input" id="codeIn" placeholder="粘贴朋友发来的祝福码" style="font-size:13px;padding:12px;flex:1;min-width:0;">
+        <button class="btn" style="width:auto;padding:12px 18px;flex:none;font-size:14px;" onclick="collectCode()">收下</button>
+      </div>
+      <p class="sub" style="font-size:11px;margin-top:6px;">朋友答完题后会把「祝福码」发给你，粘贴到这里，TA 的烟花和纸条就会出现在你的夜空里。</p>
+    </div>
     <div class="bottle">
       <div class="jar"></div>
       <div style="flex:1;">
@@ -368,6 +379,8 @@
     <div class="sheet">
       <h3 id="mTitle"></h3>
       <p id="mBody"></p>
+      <textarea id="mCode" readonly style="display:none;width:100%;height:84px;margin-top:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:10px;color:#ffd97a;font-size:12px;padding:10px;outline:none;font-family:monospace;"></textarea>
+      <button class="btn ghost" id="mCopy" style="display:none;margin-top:10px;" onclick="copyCode()">复制祝福码</button>
       <button class="btn close" onclick="closeModal()">好的</button>
     </div>
   </div>
@@ -379,25 +392,32 @@
 <script>
 const COLORS = { gold:'#FFD166', coral:'#FF6B6B', pink:'#FF8FAB', teal:'#4ECDC4', violet:'#A78BFA' };
 const PAIRS = { gold:'#FFF3B0', coral:'#FFC2A0', pink:'#FFD6E3', teal:'#C4FFF2', violet:'#DCD1FF' };
-const QUESTIONS = [
-  ['阿蓝的跨年夜仪式感更多来自？','早早写好新年愿望清单','临场跟着气氛走',0],
-  ['阿蓝跨年最想和谁一起过？','一群朋友热闹倒数','一两个好友安静聊天',1],
-  ['更接近阿蓝的理想跨年是？','山顶看日出迎接新年','城市广场看烟花倒数',0],
-  ['零点钟声敲响时，阿蓝通常会？','准时发出新年第一条朋友圈','只顾着拍视频忘了发',1],
-  ['阿蓝更可能立下的新年决心是？','早睡早起','多存一点钱',1],
-  ['阿蓝跨年餐桌必备的是？','热气腾腾的火锅','滋滋作响的烧烤',0],
-  ['迎接新年，阿蓝的歌单更可能是？','舒缓温暖的民谣','燃炸节奏的电子',1],
-  ['阿蓝收到新年礼物的反应是？','大喊哇塞拍照发圈','假装淡定偷偷开心',1],
-  ['阿蓝 2026 的年度关键词是？','稳稳的幸福','疯狂成长',0],
-  ['对阿蓝来说，跨年最重要的是？','满满的仪式感','爱的人都在身边',1]
+const DEFAULT_QS = [
+  ['TA 的跨年夜仪式感更多来自？','早早写好新年愿望清单','临场跟着气氛走',0],
+  ['TA 跨年最想和谁一起过？','一群朋友热闹倒数','一两个好友安静聊天',1],
+  ['更接近 TA 的理想跨年是？','山顶看日出迎接新年','城市广场看烟花倒数',0],
+  ['零点钟声敲响时，TA 通常会？','准时发出新年第一条朋友圈','只顾着拍视频忘了发',1],
+  ['TA 更可能立下的新年决心是？','早睡早起','多存一点钱',1],
+  ['TA 跨年餐桌必备的是？','热气腾腾的火锅','滋滋作响的烧烤',0],
+  ['迎接新年，TA 的歌单更可能是？','舒缓温暖的民谣','燃炸节奏的电子',1],
+  ['TA 收到新年礼物的反应是？','大喊哇塞拍照发圈','假装淡定偷偷开心',1],
+  ['TA 的年度关键词是？','稳稳的幸福','疯狂成长',0],
+  ['对 TA 来说，跨年最重要的是？','满满的仪式感','爱的人都在身边',1]
 ];
-const SHOW_NOTES = [
-  { name:'小鹿',   color:'gold',   pub:true,  msg:'阿蓝，新的一年也要闪闪发光呀！烟花是你，我也是。——小鹿' },
-  { name:'阿伟',   color:'gold',   pub:true, gala:true, msg:'8/10！我对你的了解可是刻在 DNA 里的。金色满堂，新年暴富！' },
-  { name:'糖糖',   color:'pink',   pub:true,  msg:'认识你的第 4 年，希望 2027 我们还要一起倒数。' },
-  { name:'神秘朋友', color:'violet', pub:false },
-  { name:'大鹏',   color:'teal',   pub:true,  msg:'祝你新的一年烦恼清零，快乐加满！' }
+let QUESTIONS = DEFAULT_QS.map(q=>q.slice());
+let SHOW_NOTES = [
+  { name:'小鹿',   color:'gold',   pub:true, score:9, msg:'新年也要闪闪发光呀！烟花是你，我也是。——小鹿' },
+  { name:'阿伟',   color:'gold',   pub:true, score:8, gala:true, msg:'8/10！我对你的了解可是刻在 DNA 里的。金色满堂，新年暴富！' },
+  { name:'糖糖',   color:'pink',   pub:true, score:6, msg:'认识你的第 4 年，希望 2027 我们还要一起倒数。' },
+  { name:'神秘朋友', color:'violet', pub:false, score:3 },
+  { name:'大鹏',   color:'teal',   pub:true, score:5, msg:'祝你新的一年烦恼清零，快乐加满！' }
 ];
+let OWNER = '阿蓝';
+let GUEST_MODE = false;
+
+/* ---------- 编码工具：把题目/祝福压进链接 ---------- */
+const b64e = s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const b64d = s => decodeURIComponent(escape(atob(s.replace(/-/g,'+').replace(/_/g,'/'))));
 
 let qIdx = 0, score = 0, guestName = '小鹿', privacy = 0, myAnswers = [];
 
@@ -520,7 +540,6 @@ tick(); setInterval(tick,1000);
 function startQuiz(){
   guestName = document.getElementById('guestName').value.trim() || '小鹿';
   qIdx = 0; score = 0; myAnswers = [];
-  document.querySelectorAll('.rn').forEach(el=>el.textContent=guestName);
   go('sc-quiz'); renderQ();
 }
 function renderQ(){
@@ -630,43 +649,159 @@ function renderReport(){
     item.innerHTML =
       '<div class="rq"><span>'+(i+1)+' · '+q[0]+'</span><span class="mk '+(right?'ok':'no')+'">'+(right?'✓':'✗')+'</span></div>'+
       '<div class="ra">你的答案：<b>'+ (mine===0?'A':'B') +' · '+q[1+mine]+'</b><br>'+
-      (right ? '和 '+owner()+' 想的一样！' : owner()+' 的真实答案：B'.replace('B', q[3]===0?'A':'B') +' · '+q[1+q[3]]) +'</div>';
+      (right ? '和 '+OWNER+' 想的一样！' : OWNER+' 的真实答案：'+(q[3]===0?'A':'B')+' · '+q[1+q[3]]) +'</div>';
     list.appendChild(item);
   });
-  function owner(){ return document.getElementById('creatorName').value.trim() || '阿蓝'; }
 }
 function reAnswer(){ startQuiz(); }
 function submitNote(){
-  if(!document.getElementById('noteText').value.trim()){ toast('先写下你的祝福吧～'); return; }
-  toast(privacy ? '保密纸条已放入心愿瓶 🤫' : '公开纸条已放入心愿瓶！');
-  setTimeout(()=>go('sc-show'), 900);
+  const msg = document.getElementById('noteText').value.trim();
+  if(!msg){ toast('先写下你的祝福吧～'); return; }
+  const code = b64e(JSON.stringify({f:guestName,m:msg,p:privacy,s:score}));
+  document.getElementById('mTitle').textContent = '纸条已放入心愿瓶 🎇';
+  document.getElementById('mBody').textContent = '把下面的「祝福码」复制发给 '+OWNER+'（微信直接粘贴即可），TA 收到后放进烟花秀，你的祝福就会出现在 TA 的夜空里。';
+  const ta = document.getElementById('mCode');
+  ta.style.display = 'block'; ta.value = code;
+  document.getElementById('mCopy').style.display = 'block';
+  document.getElementById('modal').classList.add('on');
+}
+function copyCode(){
+  const ta = document.getElementById('mCode');
+  ta.select(); ta.setSelectionRange(0, 9999);
+  try{ document.execCommand('copy'); toast('祝福码已复制，去发给 '+OWNER+' 吧！'); }catch(e){ toast('长按文字手动复制'); }
+  if(navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(()=>{});
 }
 
-/* ---------- 烟花秀纸条 ---------- */
-(function buildShow(){
+/* ---------- 烟花秀纸条（演示数据 + 朋友发来的祝福码） ---------- */
+const LS_KEY = 'yanhuaxin_notes';
+function loadNotes(){
+  try{ return JSON.parse(localStorage.getItem(LS_KEY)||'[]'); }catch(e){ return []; }
+}
+function buildShow(){
   const layer = document.getElementById('fw-show');
-  const pos = [[64,148],[188,96],[282,186],[146,286],[248,318]];
-  SHOW_NOTES.forEach((n,i)=>{
+  layer.querySelectorAll('.fw').forEach(f=>f.remove());
+  const stored = loadNotes().map(n=>Object.assign({}, n, { gala:(n.score||0)>=8 }));
+  const all = SHOW_NOTES.concat(stored);
+  const pos = [[64,148],[188,96],[282,186],[146,286],[248,318],[40,268],[110,368],[300,300],[60,220]];
+  all.forEach((n,i)=>{
+    const p = pos[i%pos.length];
     makeFirework(layer, {
-      x:pos[i][0], y:pos[i][1], color:n.color, count:14, cycle:'5.2s',
-      scale:(n.gala?1.05:.85)+Math.random()*.3, gala:!!n.gala,
+      x:p[0], y:p[1], color:n.color, count:14, cycle:'5.2s',
+      scale:(((n.gala)||(n.score||0)>=8)?1.05:.85)+Math.random()*.3, gala:!!n.gala,
       name:n.name, private:!n.pub,
       onclick:()=>{
         document.getElementById('mTitle').textContent = n.pub ? n.name+' 的纸条' : '🤫 这是个秘密';
-        document.getElementById('mBody').textContent = n.pub ? n.msg : n.name+' 把祝福藏了起来，只有主人（'+creatorName()+'）零点开封心愿瓶时才能看见。';
+        document.getElementById('mBody').textContent = n.pub ? n.msg : n.name+' 把祝福藏了起来，只有主人（'+OWNER+'）零点开封心愿瓶时才能看见。';
         document.getElementById('modal').classList.add('on');
       }
     });
   });
-  function creatorName(){ return document.getElementById('creatorName').value.trim() || '阿蓝'; }
-})();
+  const pubN = all.filter(n=>n.pub).length;
+  document.getElementById('cntAll').textContent = all.length;
+  document.getElementById('cntPubN').textContent = pubN;
+  document.getElementById('cntPub').textContent = pubN;
+}
+function collectCode(){
+  const raw = document.getElementById('codeIn').value.trim();
+  if(!raw){ toast('先粘贴朋友发来的祝福码哦～'); return; }
+  let d;
+  try{ d = JSON.parse(b64d(raw)); }catch(e){ d = null; }
+  if(!d || !d.f || !d.m){ toast('祝福码好像不对，请检查是否复制完整'); return; }
+  const notes = loadNotes();
+  notes.push({
+    name:String(d.f).slice(0,12),
+    color:['gold','coral','pink','teal','violet'][notes.length%5],
+    pub:!d.p, msg:String(d.m).slice(0,120), score:d.s||0
+  });
+  localStorage.setItem(LS_KEY, JSON.stringify(notes));
+  document.getElementById('codeIn').value = '';
+  buildShow();
+  toast('已收下 '+d.f+' 的祝福 🎆');
+}
+
+/* ---------- 创建者：题目编辑器 & 链接生成 ---------- */
+function onOwnerRename(){
+  OWNER = document.getElementById('creatorName').value.trim() || '阿蓝';
+  applyOwner();
+}
+function setAns(i,v){
+  QUESTIONS[i][3] = v;
+  const a = document.getElementById('eab'+i), b = document.getElementById('ebb'+i);
+  if(a) a.classList.toggle('on', v===0);
+  if(b) b.classList.toggle('on', v===1);
+}
+function buildEditor(){
+  const box = document.getElementById('qEdit');
+  box.innerHTML = '';
+  QUESTIONS.forEach((q,i)=>{
+    const esc = s => s.replace(/"/g,'&quot;').replace(/</g,'&lt;');
+    const d = document.createElement('div'); d.className = 'qcard';
+    d.innerHTML =
+      '<div class="sub" style="font-size:12px;margin-bottom:6px;">第 '+(i+1)+' 题</div>'+
+      '<input class="mininput" id="eq'+i+'" value="'+esc(q[0])+'" placeholder="题目">'+
+      '<input class="mininput" id="ea'+i+'" value="'+esc(q[1])+'" placeholder="选项 A" style="margin-top:6px;">'+
+      '<input class="mininput" id="eb'+i+'" value="'+esc(q[2])+'" placeholder="选项 B" style="margin-top:6px;">'+
+      '<div class="abtoggle"><button id="eab'+i+'" onclick="setAns('+i+',0)">✓ 正确答案是 A</button>'+
+      '<button id="ebb'+i+'" onclick="setAns('+i+',1)">✓ 正确答案是 B</button></div>';
+    box.appendChild(d);
+  });
+  QUESTIONS.forEach((q,i)=>setAns(i,q[3]));
+}
+function makeLink(){
+  const name = document.getElementById('creatorName').value.trim() || '阿蓝';
+  OWNER = name; applyOwner();
+  const qs = [];
+  for(let i=0;i<10;i++){
+    qs.push([
+      (document.getElementById('eq'+i).value.trim() || ('第'+(i+1)+'题')).replace(/TA/g,name),
+      document.getElementById('ea'+i).value.trim() || '选项 A',
+      document.getElementById('eb'+i).value.trim() || '选项 B',
+      QUESTIONS[i][3]
+    ]);
+  }
+  QUESTIONS = qs;
+  const base = location.href.split('#')[0];
+  const url = base + '#g=' + b64e(JSON.stringify({ c:name, q:qs }));
+  document.getElementById('linkOut').value = url;
+  document.getElementById('linkBox').style.display = 'block';
+  toast('链接已生成，复制发给朋友吧！');
+}
+function copyLink(){
+  const inp = document.getElementById('linkOut');
+  inp.select(); inp.setSelectionRange(0, 9999);
+  try{ document.execCommand('copy'); toast('已复制，快发给朋友吧！'); }catch(e){ toast('长按输入框手动复制'); }
+  if(navigator.clipboard) navigator.clipboard.writeText(inp.value).catch(()=>{});
+}
+function initFromHash(){
+  const m = location.hash.match(/#g=(.+)$/);
+  if(!m) return false;
+  try{
+    const d = JSON.parse(b64d(m[1]));
+    if(!d || !d.c || !d.q) return false;
+    QUESTIONS = d.q; OWNER = String(d.c).slice(0,12);
+    return true;
+  }catch(e){ return false; }
+}
 
 /* ---------- init ---------- */
-const owner = document.getElementById('creatorName').value || '阿蓝';
-document.getElementById('inviteName').textContent = owner;
-document.getElementById('inviteName2').textContent = owner;
-document.getElementById('noteName').textContent = owner;
-const NAV = [['sc-create','1 创建'],['sc-invite','2 邀请页'],['sc-name','3 取昵称'],['sc-quiz','4 答题'],['sc-result','5 结果'],['sc-report','6 报告'],['sc-note','7 纸条'],['sc-show','8 烟花秀']];
+function applyOwner(){
+  ['inviteName','inviteName2','noteName'].forEach(id=>{
+    const el = document.getElementById(id); if(el) el.textContent = OWNER;
+  });
+  const av = document.getElementById('avatarLetter'); if(av) av.textContent = OWNER.charAt(0);
+  const qn = document.getElementById('qn'); if(qn) qn.textContent = OWNER;
+  document.querySelectorAll('.rn').forEach(el=>el.textContent=OWNER);
+}
+GUEST_MODE = initFromHash();
+if(GUEST_MODE){
+  document.getElementById('creatorName').value = OWNER;
+} else {
+  OWNER = document.getElementById('creatorName').value.trim() || '阿蓝';
+  buildEditor();
+}
+applyOwner();
+const NAV_ALL = [['sc-create','1 创建'],['sc-invite','2 邀请页'],['sc-name','3 取昵称'],['sc-quiz','4 答题'],['sc-result','5 结果'],['sc-report','6 报告'],['sc-note','7 纸条'],['sc-show','8 烟花秀']];
+const NAV = GUEST_MODE ? NAV_ALL.slice(1) : NAV_ALL;
 const nav = document.getElementById('nav');
 NAV.forEach(([t,label])=>{
   const b=document.createElement('button'); b.textContent=label; b.dataset.t=t;
@@ -676,7 +811,9 @@ NAV.forEach(([t,label])=>{
   };
   nav.appendChild(b);
 });
-go('sc-invite');
+document.getElementById('codeBox').style.display = GUEST_MODE ? 'none' : 'block';
+buildShow();
+go(GUEST_MODE ? 'sc-invite' : 'sc-create');
 </script>
 </body>
 </html>
