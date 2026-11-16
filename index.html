@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>烟花信 · 把祝福随烟花送达</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:#10121b; font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; gap:16px; padding:24px 12px;
+  }
+  .proto-nav { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:640px; }
+  .proto-nav button {
+    background:#1d2030; color:#9aa0b5; border:1px solid #2c3044; border-radius:999px;
+    padding:6px 14px; font-size:12px; cursor:pointer;
+  }
+  .proto-nav button.on { background:#f5c15c; color:#241a05; border-color:#f5c15c; font-weight:600; }
+  .phone {
+    position:relative; width:392px; height:812px; border-radius:44px; overflow:hidden;
+    background:#0a0f2c; box-shadow:0 0 0 10px #1b1d27, 0 30px 80px rgba(0,0,0,.6);
+  }
+  .screen {
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    background:linear-gradient(180deg,#060a22 0%,#0c1134 55%,#1c1038 100%);
+    opacity:0; pointer-events:none; transition:opacity .35s ease; overflow-y:auto; padding:0 28px;
+  }
+  .screen.on { opacity:1; pointer-events:auto; }
+  .stars, .fwlayer, .confetti { position:absolute; inset:0; pointer-events:none; }
+  .star { position:absolute; width:2px; height:2px; border-radius:50%; background:#fff; opacity:.5; animation:tw 3s ease-in-out infinite; }
+  @keyframes tw { 50% { opacity:.1; } }
+  .conf { position:absolute; top:-8px; border-radius:1px; opacity:0; animation:fall linear infinite; }
+  @keyframes fall { 0% { transform:translateY(0) rotate(0deg); opacity:0; } 8% { opacity:.85; } 88% { opacity:.85; } 100% { transform:translateY(820px) rotate(340deg); opacity:0; } }
+  .skyline { position:absolute; left:0; right:0; bottom:0; height:110px; pointer-events:none; }
+  .bldg { position:absolute; bottom:0; background:#05081a; }
+  .win { position:absolute; width:5px; height:6px; background:#f5c15c; opacity:.7; border-radius:1px; }
+  .neon {
+    position:absolute; bottom:64px; right:18px; font-size:34px; font-weight:600; letter-spacing:3px;
+    color:#ffd97a; text-shadow:0 0 6px rgba(255,209,102,.9),0 0 18px rgba(255,166,35,.7),0 0 36px rgba(255,120,60,.45);
+    animation:neonFlicker 4s ease-in-out infinite;
+  }
+  @keyframes neonFlicker { 0%,100% { opacity:1; } 92% { opacity:1; } 94% { opacity:.55; } 96% { opacity:1; } 98% { opacity:.7; } }
+  .btn {
+    display:block; width:100%; padding:16px; border:none; border-radius:16px; cursor:pointer;
+    font-size:16px; font-weight:600; color:#241a05;
+    background:linear-gradient(135deg,#ffd97a,#f5a623); box-shadow:0 8px 24px rgba(245,166,35,.35);
+  }
+  .btn.ghost { background:rgba(255,255,255,.08); color:#e8e9f2; border:1px solid rgba(255,255,255,.2); box-shadow:none; }
+  .tag { display:inline-block; font-size:12px; color:#f5c15c; border:1px solid rgba(245,193,92,.45); background:rgba(245,193,92,.1); border-radius:999px; padding:4px 12px; }
+  .tag.live b { color:#ffd97a; font-variant-numeric:tabular-nums; font-weight:600; }
+  h1 { color:#fff; font-size:26px; line-height:1.35; font-weight:600; }
+  .sub { color:#a9b0cf; font-size:14px; line-height:1.7; }
+  .input {
+    width:100%; padding:16px; border-radius:16px; border:1px solid rgba(255,255,255,.18);
+    background:rgba(255,255,255,.07); color:#fff; font-size:16px; outline:none;
+  }
+  .input::placeholder { color:#6c7290; }
+
+  /* ---------- fireworks v2 ---------- */
+  .fw { position:absolute; width:160px; height:160px; }
+  .fw .flash {
+    position:absolute; inset:24px; border-radius:50%; opacity:0;
+    background:radial-gradient(circle, rgba(255,255,255,.95) 0%, rgba(255,255,255,.25) 40%, transparent 68%);
+    animation:flash var(--cycle,3.6s) var(--delay,0s) ease-out infinite;
+  }
+  .fw.once .flash { animation:flashOnce 1.9s ease-out forwards; }
+  @keyframes flash { 0% { opacity:0; transform:scale(.15); } 10% { opacity:.9; transform:scale(.55); } 30% { opacity:.2; } 55% { opacity:0; transform:scale(1.05); } 100% { opacity:0; } }
+  @keyframes flashOnce { 0% { opacity:0; transform:scale(.15); } 12% { opacity:.95; transform:scale(.6); } 100% { opacity:0; transform:scale(1.1); } }
+  .fw .core {
+    position:absolute; left:50%; top:50%; width:10px; height:10px; margin:-5px 0 0 -5px; border-radius:50%;
+    background:#fff; box-shadow:0 0 16px 6px var(--c), 0 0 34px 12px rgba(255,255,255,.25);
+    animation:pulse 2.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 50% { transform:scale(.6); opacity:.75; } }
+  .fw .p, .fw .p2, .fw .p3 {
+    position:absolute; left:50%; top:50%; border-radius:50%; opacity:0;
+    animation:fly var(--cycle,3.6s) var(--delay,0s) cubic-bezier(.15,.62,.3,1) infinite;
+  }
+  .fw.once .p, .fw.once .p2, .fw.once .p3 { animation-name:flyOnce; animation-duration:2s; animation-fill-mode:forwards; }
+  .fw .p  { width:5px; height:5px; margin:-2px 0 0 -2px; background:var(--c); box-shadow:0 0 9px 3px var(--c); }
+  .fw .p2 { width:8px; height:8px; margin:-4px 0 0 -4px; background:var(--c2,var(--c)); box-shadow:0 0 12px 4px var(--c2,var(--c)); }
+  .fw .p3 { width:3px; height:3px; margin:-1px 0 0 -1px; background:#fff; box-shadow:0 0 6px 2px #fff; }
+  .fw .g  { width:6px; height:6px; margin:-3px 0 0 -3px; background:#FFE38A; box-shadow:0 0 10px 3px #FFD166; animation:fly var(--cycle,3.6s) var(--delay,0s) cubic-bezier(.15,.62,.3,1) infinite; }
+  .fw.once .g { animation-name:flyOnce; animation-duration:2.2s; animation-fill-mode:forwards; }
+  .gala-badge {
+    display:none; margin:14px auto 0; width:fit-content; font-size:13px; color:#FFE38A;
+    border:1px solid rgba(255,209,102,.6); background:rgba(255,209,102,.14);
+    border-radius:999px; padding:6px 16px; box-shadow:0 0 18px rgba(255,209,102,.3);
+  }
+  .gala-badge.on { display:block; animation:badgeIn .5s ease; }
+  @keyframes badgeIn { from { transform:scale(.8); opacity:0; } }
+
+  /* ---------- 答题报告 ---------- */
+  .rp { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:12px 14px; margin-top:10px; }
+  .rp .rq { color:#e8e9f2; font-size:14px; font-weight:600; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .rp .ra { font-size:12px; color:#a9b0cf; margin-top:6px; line-height:1.6; }
+  .rp .ra b { color:#f5c15c; font-weight:600; }
+  .rp .mk { flex:none; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; }
+  .rp .mk.ok { background:rgba(63,185,80,.18); color:#5ad27a; }
+  .rp .mk.no { background:rgba(226,75,74,.18); color:#ff8f8f; }
+
+  /* ---------- 答题报告 ---------- */
+  @keyframes fly { 0% { transform:rotate(var(--a)) translateX(8px); opacity:1; } 28% { opacity:1; } 44% { opacity:0; } 100% { transform:rotate(var(--a)) translateX(var(--d)); opacity:0; } }
+  @keyframes flyOnce { 0% { transform:rotate(var(--a)) translateX(8px); opacity:1; } 72% { opacity:1; } 100% { transform:rotate(var(--a)) translateX(var(--d)); opacity:0; } }
+  .fw-name {
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:3;
+    background:rgba(20,24,50,.55); border:1px solid rgba(255,255,255,.45); backdrop-filter:blur(4px);
+    color:#fff; font-size:13px; padding:5px 12px; border-radius:999px; white-space:nowrap; cursor:pointer;
+    box-shadow:0 0 14px rgba(255,209,102,.25);
+  }
+  .fw-name.lock { border-style:dashed; color:#f0d9ff; }
+
+  /* ---------- screen 1: create ---------- */
+  .qcard { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:14px 16px; margin-top:12px; }
+  .qcard .q { color:#e8e9f2; font-size:14px; font-weight:600; margin-bottom:8px; }
+  .qcard .opt { color:#a9b0cf; font-size:13px; padding:6px 10px; border-radius:10px; background:rgba(255,255,255,.05); margin-top:6px; }
+  .qcard .opt b { color:#f5c15c; margin-right:6px; font-weight:600; }
+
+  /* ---------- screen 4: quiz ---------- */
+  .progress { height:6px; border-radius:3px; background:rgba(255,255,255,.12); overflow:hidden; margin-top:10px; }
+  .progress i { display:block; height:100%; width:0%; background:linear-gradient(90deg,#f5c15c,#ff8f6b); border-radius:3px; transition:width .35s ease; }
+  .qnum { color:#f5c15c; font-size:13px; letter-spacing:2px; margin-top:26px; }
+  .qtext { color:#fff; font-size:20px; font-weight:600; line-height:1.5; margin-top:10px; }
+  .optcard {
+    margin-top:16px; padding:18px; border-radius:18px; cursor:pointer;
+    background:rgba(255,255,255,.06); border:1.5px solid rgba(255,255,255,.14); color:#e8e9f2; font-size:15px;
+    display:flex; align-items:center; gap:12px; transition:all .2s;
+  }
+  .optcard:hover { border-color:rgba(245,193,92,.6); }
+  .optcard.sel { border-color:#f5c15c; background:rgba(245,193,92,.14); color:#fff; }
+  .optcard .ab { width:32px; height:32px; flex:none; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:600; background:rgba(255,255,255,.1); color:#f5c15c; }
+  .optcard.sel .ab { background:#f5c15c; color:#241a05; }
+
+  /* ---------- screen 5: result ---------- */
+  .rank { color:#ffd97a; font-size:22px; font-weight:600; }
+  .score { color:#fff; font-size:48px; font-weight:600; text-shadow:0 0 22px rgba(255,209,102,.4); }
+  .score small { font-size:18px; color:#a9b0cf; font-weight:400; }
+
+  /* ---------- screen 6: note ---------- */
+  .paper {
+    background:#fff8e7; border-radius:18px; padding:20px 18px 26px; color:#4a3b20;
+    background-image:repeating-linear-gradient(transparent,transparent 30px,rgba(120,90,30,.15) 31px);
+    box-shadow:0 12px 30px rgba(0,0,0,.4);
+  }
+  .paper textarea {
+    width:100%; height:132px; border:none; background:transparent; outline:none; resize:none;
+    font-size:15px; line-height:31px; color:#4a3b20; font-family:inherit;
+  }
+  .seg { display:flex; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14); border-radius:16px; padding:4px; margin-top:22px; }
+  .seg button { flex:1; border:none; background:transparent; color:#a9b0cf; font-size:14px; padding:12px 0; border-radius:12px; cursor:pointer; line-height:1.4; }
+  .seg button small { display:block; font-size:11px; opacity:.75; font-weight:400; }
+  .seg button.on { background:linear-gradient(135deg,#ffd97a,#f5a623); color:#241a05; font-weight:600; }
+  .seg button.on small { opacity:.8; }
+
+  /* ---------- screen 7: show ---------- */
+  .bottle {
+    margin-top:auto; position:relative; z-index:4; background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.18); border-radius:18px; padding:14px 16px;
+    display:flex; align-items:center; gap:12px; backdrop-filter:blur(6px);
+  }
+  .bottle .jar { width:34px; height:44px; flex:none; border:2px solid #7fd7c9; border-radius:8px 8px 14px 14px; position:relative; }
+  .bottle .jar::before { content:""; position:absolute; left:-2px; right:-2px; top:-6px; height:6px; background:#7fd7c9; border-radius:4px; }
+  .bottle .jar::after { content:""; position:absolute; left:5px; right:5px; bottom:5px; height:14px; background:rgba(245,193,92,.75); border-radius:6px; }
+  .sheet-hint {
+    position:relative; z-index:4; text-align:center; color:#7d84a3; font-size:12px; margin-top:12px;
+  }
+  .modal {
+    position:absolute; inset:0; z-index:9; display:none; align-items:flex-end; justify-content:center;
+    background:rgba(4,6,18,.6); backdrop-filter:blur(3px);
+  }
+  .modal.on { display:flex; }
+  .sheet { width:100%; background:#161a33; border-radius:24px 24px 0 0; padding:24px 24px 30px; animation:up .3s ease; }
+  @keyframes up { from { transform:translateY(40px); opacity:.4; } }
+  .sheet h3 { color:#fff; font-size:18px; margin-bottom:6px; }
+  .sheet p { color:#c6cbdf; font-size:15px; line-height:1.8; }
+  .sheet .close { margin-top:20px; }
+  .toast {
+    position:absolute; left:50%; bottom:110px; transform:translateX(-50%) translateY(10px); z-index:10;
+    background:rgba(20,24,50,.92); border:1px solid rgba(245,193,92,.5); color:#ffd97a;
+    font-size:13px; padding:10px 18px; border-radius:999px; opacity:0; transition:all .3s; pointer-events:none; white-space:nowrap;
+  }
+  .toast.on { opacity:1; transform:translateX(-50%) translateY(0); }
+  .topbar { padding-top:56px; flex:none; }
+  .grow { flex:1; }
+  .foot-pad { height:40px; flex:none; }
+</style>
+</head>
+<body>
+<div class="proto-nav" id="nav"></div>
+
+<div class="phone" id="phone">
+
+  <!-- 1 创建者 -->
+  <section class="screen" id="sc-create">
+    <div class="stars"></div>
+    <div class="topbar"><span class="tag">烟花信 · 创建挑战</span></div>
+    <div style="margin-top:26px;">
+      <h1>创建你的<br>跨年烟花 🎆</h1>
+      <p class="sub" style="margin-top:10px;">邀请朋友回答关于你的 10 个日常小问题，<br>答对越多，烟花越盛大。</p>
+    </div>
+    <div style="margin-top:24px;">
+      <p class="sub" style="font-size:13px;margin-bottom:8px;">你的昵称（朋友会在邀请页看到）</p>
+      <input class="input" id="creatorName" value="阿蓝" placeholder="给自己取个昵称">
+    </div>
+    <div style="margin-top:22px;">
+      <p class="sub" style="font-size:13px;">10 道二选一日常题 · 已自动生成</p>
+      <div class="qcard">
+        <div class="q">1 · 阿蓝的跨年夜仪式感更多来自？</div>
+        <div class="opt"><b>A</b>早早写好新年愿望清单</div>
+        <div class="opt"><b>B</b>临场跟着气氛走</div>
+      </div>
+      <div class="qcard">
+        <div class="q">2 · 阿蓝跨年餐桌必备的是？</div>
+        <div class="opt"><b>A</b>热气腾腾的火锅</div>
+        <div class="opt"><b>B</b>滋滋作响的烧烤</div>
+      </div>
+      <div class="qcard" style="text-align:center;">
+        <div class="opt" style="text-align:center;">… 共 10 题，可随时替换成自己的题目</div>
+      </div>
+    </div>
+    <div class="grow"></div>
+    <button class="btn" onclick="toast('邀请链接已生成，快分享到群里吧！')">生成邀请链接 · 分享给朋友</button>
+    <div class="foot-pad"></div>
+  </section>
+
+  <!-- 2 邀请页 -->
+  <section class="screen" id="sc-invite">
+    <div class="stars"></div>
+    <div class="confetti"></div>
+    <div class="fwlayer" id="fw-invite"></div>
+    <div class="skyline" data-skyline><span class="neon">2027</span></div>
+    <div class="topbar" style="position:relative;z-index:4;">
+      <span class="tag live">🎆 烟花信 · 距离 2027 还有 <b id="cd-invite">--</b></span>
+    </div>
+    <div style="margin-top:60px;position:relative;z-index:4;">
+      <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#ffd97a,#f5a623);display:flex;align-items:center;justify-content:center;font-size:30px;color:#241a05;font-weight:600;box-shadow:0 0 30px rgba(255,166,35,.5);">蓝</div>
+      <h1 style="margin-top:20px;"><span id="inviteName">阿蓝</span> 邀请你<br>参加 TA 的跨年烟花</h1>
+      <p class="sub" style="margin-top:12px;">回答 10 道关于 TA 的二选一小题，<br>答对越多，你燃放的烟花就越盛大，<br>最后还能给 TA 投一张新年纸条。</p>
+    </div>
+    <div class="grow"></div>
+    <div style="position:relative;z-index:4;">
+      <button class="btn" onclick="go('sc-name')">开始 · 帮 TA 燃放烟花</button>
+      <p class="sub" style="text-align:center;font-size:12px;margin-top:12px;">答题后你的烟花和昵称会出现在 TA 的烟花秀里</p>
+    </div>
+    <div class="foot-pad"></div>
+  </section>
+
+  <!-- 3 取昵称 -->
+  <section class="screen" id="sc-name">
+    <div class="stars"></div>
+    <div class="topbar"><span class="tag">第 1 步 · 取昵称</span></div>
+    <div style="margin-top:50px;">
+      <h1>你希望烟花上<br>写什么名字？</h1>
+      <p class="sub" style="margin-top:12px;">取一个 <span id="inviteName2">阿蓝</span> 一眼能认出的昵称，<br>它会被写在你的烟花正中间。</p>
+      <input class="input" id="guestName" placeholder="你的昵称，例如：小鹿" style="margin-top:26px;">
+    </div>
+    <div class="grow"></div>
+    <button class="btn" onclick="startQuiz()">下一个 · 开始答题</button>
+    <div class="foot-pad"></div>
+  </section>
+
+  <!-- 4 答题 -->
+  <section class="screen" id="sc-quiz">
+    <div class="stars"></div>
+    <div class="topbar">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+        <span class="tag">关于 <span id="qn">阿蓝</span></span>
+        <span class="sub" style="font-size:13px;"><b id="qidx" style="color:#f5c15c;">1</b> / 10</span>
+      </div>
+      <div class="progress"><i id="qbar"></i></div>
+    </div>
+    <div style="margin-top:20px;">
+      <p class="qtext" id="qtext"></p>
+      <div class="optcard" id="optA" onclick="pick(0)"><span class="ab">A</span><span id="optAt"></span></div>
+      <div class="optcard" id="optB" onclick="pick(1)"><span class="ab">B</span><span id="optBt"></span></div>
+    </div>
+    <div class="grow"></div>
+    <p class="sub" style="text-align:center;font-size:12px;">放心选，答案只有 TA 知道</p>
+    <div class="foot-pad"></div>
+  </section>
+
+  <!-- 5 结果 -->
+  <section class="screen" id="sc-result">
+    <div class="stars"></div>
+    <div class="confetti"></div>
+    <div class="fwlayer" id="fw-result"></div>
+    <div class="skyline" data-skyline><span class="neon">2027</span></div>
+    <div class="topbar" style="position:relative;z-index:4;"><span class="tag">烟花绽放</span></div>
+    <div style="margin-top:230px;position:relative;z-index:4;text-align:center;">
+      <div class="score"><span id="scoreNum">8</span><small> / 10 答对</small></div>
+      <div class="rank" id="rankTitle" style="margin-top:8px;">默契满分</div>
+      <p class="sub" id="rankDesc" style="margin-top:10px;">你的烟花照亮了整片夜空</p>
+      <div class="gala-badge" id="galaBadge"></div>
+    </div>
+    <div class="grow"></div>
+    <div style="position:relative;z-index:4;">
+      <button class="btn" onclick="openReport()">查看答题报告 · 对错详情</button>
+      <button class="btn ghost" style="margin-top:12px;" onclick="go('sc-note')">写一张新年纸条 · 放进心愿瓶</button>
+      <button class="btn ghost" style="margin-top:12px;" onclick="go('sc-show')">先看看 <span class="rn">阿蓝</span> 的烟花秀</button>
+    </div>
+    <div class="foot-pad"></div>
+  </section>
+
+  <!-- 6b 答题报告 -->
+  <section class="screen" id="sc-report">
+    <div class="stars"></div>
+    <div class="topbar">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span class="tag">答题报告 · 已解锁</span>
+        <span class="sub" style="font-size:12px;">共答对 <b id="rpScore" style="color:#f5c15c;">0</b> / 10 题</span>
+      </div>
+      <p class="sub" style="font-size:12px;margin-top:8px;">看看 <span class="rn">阿蓝</span> 心里的真实答案</p>
+    </div>
+    <div id="rpList" style="margin-top:16px;"></div>
+    <div class="grow"></div>
+    <button class="btn" onclick="reAnswer()">重新答题 · 再放一朵烟花</button>
+    <button class="btn ghost" style="margin-top:12px;" onclick="go('sc-note')">写纸条 · 放进心愿瓶</button>
+    <div class="foot-pad"></div>
+  </section>
+
+  <!-- 6 写纸条 -->
+  <section class="screen" id="sc-note">
+    <div class="stars"></div>
+    <div class="topbar"><span class="tag">烟花信 · 新年纸条</span></div>
+    <div style="margin-top:26px;">
+      <h1>给 <span id="noteName">阿蓝</span> 写张纸条</h1>
+      <p class="sub" style="margin-top:10px;">写下新年祝福，折起来放进 TA 的心愿瓶。</p>
+      <div class="paper" style="margin-top:20px;">
+        <textarea id="noteText" placeholder="写下你想对 TA 说的新年祝福…"></textarea>
+      </div>
+      <div class="seg">
+        <button class="on" id="segPub" onclick="setPrivacy(0)">公开<small>其他朋友答题后也能看见</small></button>
+        <button id="segPriv" onclick="setPrivacy(1)">保密<small>只有主人可以看见</small></button>
+      </div>
+    </div>
+    <div class="grow"></div>
+    <button class="btn" onclick="submitNote()">把纸条放入心愿瓶</button>
+    <div class="foot-pad"></div>
+  </section>
+
+  <!-- 7 烟花秀 + 心愿瓶 -->
+  <section class="screen" id="sc-show">
+    <div class="stars"></div>
+    <div class="confetti"></div>
+    <div class="fwlayer" id="fw-show" style="pointer-events:auto;cursor:pointer;"></div>
+    <div class="skyline" data-skyline><span class="neon">2027</span></div>
+    <div class="topbar" style="position:relative;z-index:4;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span class="tag"><span class="rn">阿蓝</span> 的跨年烟花秀</span>
+        <span class="sub" style="font-size:12px;">已收到 5 张纸条 · 4 张公开</span>
+      </div>
+      <p class="sub" style="font-size:12px;margin-top:8px;">点击昵称查看 TA 的话 · 点击夜空也能放一朵 · <span style="color:#ffd97a;">金色烟花</span>属于答对 8 题以上的王者</p>
+    </div>
+    <div class="grow"></div>
+    <div class="bottle">
+      <div class="jar"></div>
+      <div style="flex:1;">
+        <div style="color:#fff;font-size:14px;font-weight:600;">心愿瓶 · <span id="cntPub">4</span> 张纸条已收集</div>
+        <div style="color:#a9b0cf;font-size:12px;margin-top:2px;">零点开封 · 还有 <b id="cd-show" style="color:#ffd97a;font-variant-numeric:tabular-nums;">--</b></div>
+      </div>
+      <span class="tag" style="flex:none;">2027</span>
+    </div>
+    <p class="sheet-hint">烟花信 · 所有祝福将于 12 月 31 日 24:00 随零点烟花一同开封 🎇</p>
+    <div class="foot-pad"></div>
+  </section>
+
+  <div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
+    <div class="sheet">
+      <h3 id="mTitle"></h3>
+      <p id="mBody"></p>
+      <button class="btn close" onclick="closeModal()">好的</button>
+    </div>
+  </div>
+
+  <!-- 模拟微信支付（免费版已移除） -->
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+const COLORS = { gold:'#FFD166', coral:'#FF6B6B', pink:'#FF8FAB', teal:'#4ECDC4', violet:'#A78BFA' };
+const PAIRS = { gold:'#FFF3B0', coral:'#FFC2A0', pink:'#FFD6E3', teal:'#C4FFF2', violet:'#DCD1FF' };
+const QUESTIONS = [
+  ['阿蓝的跨年夜仪式感更多来自？','早早写好新年愿望清单','临场跟着气氛走',0],
+  ['阿蓝跨年最想和谁一起过？','一群朋友热闹倒数','一两个好友安静聊天',1],
+  ['更接近阿蓝的理想跨年是？','山顶看日出迎接新年','城市广场看烟花倒数',0],
+  ['零点钟声敲响时，阿蓝通常会？','准时发出新年第一条朋友圈','只顾着拍视频忘了发',1],
+  ['阿蓝更可能立下的新年决心是？','早睡早起','多存一点钱',1],
+  ['阿蓝跨年餐桌必备的是？','热气腾腾的火锅','滋滋作响的烧烤',0],
+  ['迎接新年，阿蓝的歌单更可能是？','舒缓温暖的民谣','燃炸节奏的电子',1],
+  ['阿蓝收到新年礼物的反应是？','大喊哇塞拍照发圈','假装淡定偷偷开心',1],
+  ['阿蓝 2026 的年度关键词是？','稳稳的幸福','疯狂成长',0],
+  ['对阿蓝来说，跨年最重要的是？','满满的仪式感','爱的人都在身边',1]
+];
+const SHOW_NOTES = [
+  { name:'小鹿',   color:'gold',   pub:true,  msg:'阿蓝，新的一年也要闪闪发光呀！烟花是你，我也是。——小鹿' },
+  { name:'阿伟',   color:'gold',   pub:true, gala:true, msg:'8/10！我对你的了解可是刻在 DNA 里的。金色满堂，新年暴富！' },
+  { name:'糖糖',   color:'pink',   pub:true,  msg:'认识你的第 4 年，希望 2027 我们还要一起倒数。' },
+  { name:'神秘朋友', color:'violet', pub:false },
+  { name:'大鹏',   color:'teal',   pub:true,  msg:'祝你新的一年烦恼清零，快乐加满！' }
+];
+
+let qIdx = 0, score = 0, guestName = '小鹿', privacy = 0, myAnswers = [];
+
+/* ---------- helpers ---------- */
+function go(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  el.classList.add('on');
+  el.scrollTop = 0;
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.t===id));
+  if(id==='sc-result'){ fireResult(); }
+  if(id==='sc-show') finale(4, 900);
+}
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('on'), 2200);
+}
+function closeModal(){ document.getElementById('modal').classList.remove('on'); }
+
+/* ---------- decorations ---------- */
+function spawnStars(el, n){
+  for(let i=0;i<n;i++){
+    const s = document.createElement('span'); s.className='star';
+    s.style.left = Math.random()*100+'%';
+    s.style.top = Math.random()*55+'%';
+    s.style.animationDelay = Math.random()*3+'s';
+    s.style.opacity = .25+Math.random()*.5;
+    el.appendChild(s);
+  }
+}
+function spawnConfetti(el, n){
+  const palette = ['#FFD166','#FF8F6B','#7FD7C9','#FF8FAB','#FFFFFF'];
+  for(let i=0;i<n;i++){
+    const c = document.createElement('span'); c.className='conf';
+    c.style.left = Math.random()*100+'%';
+    c.style.width = (2+Math.random()*3)+'px';
+    c.style.height = (4+Math.random()*5)+'px';
+    c.style.background = palette[i%palette.length];
+    c.style.animationDuration = (5+Math.random()*6)+'s';
+    c.style.animationDelay = (Math.random()*8)+'s';
+    c.style.borderRadius = '2px';
+    el.appendChild(c);
+  }
+}
+function spawnSkyline(el){
+  let x=0;
+  while(x<392){
+    const w = 26+Math.random()*44, h = 18+Math.random()*80;
+    const b = document.createElement('div'); b.className='bldg';
+    b.style.left=x+'px'; b.style.width=w+'px'; b.style.height=h+'px';
+    for(let i=0;i<Math.random()*4;i++){
+      const win=document.createElement('div'); win.className='win';
+      win.style.left=(6+Math.random()*(w-16))+'px';
+      win.style.top=(8+Math.random()*(h-20))+'px';
+      b.appendChild(win);
+    }
+    el.appendChild(b); x+=w+4+Math.random()*10;
+  }
+}
+function makeFirework(layer, opt){
+  const fw = document.createElement('div');
+  fw.className = 'fw' + (opt.once ? ' once' : '');
+  const c = COLORS[opt.color] || COLORS.gold;
+  fw.style.setProperty('--c', c);
+  fw.style.setProperty('--c2', PAIRS[opt.color] || '#FFF3B0');
+  fw.style.setProperty('--cycle', opt.cycle || (3.4+Math.random()*1.4)+'s');
+  fw.style.left = opt.x+'px'; fw.style.top = opt.y+'px';
+  fw.style.transform = 'scale('+(opt.scale||1)+')';
+  const flash = document.createElement('div'); flash.className='flash';
+  if(opt.delay) { flash.style.setProperty('--delay', opt.delay+'s'); fw.style.setProperty('--delay', opt.delay+'s'); }
+  fw.appendChild(flash);
+  const N1 = opt.count || 16, N2 = 8, N3 = 10;
+  function addP(cls, dist, extra){
+    const p=document.createElement('span'); p.className=cls;
+    p.style.setProperty('--a',(Math.random()*360)+'deg');
+    p.style.setProperty('--d',dist+'px');
+    p.style.setProperty('--delay',(extra.delay!==undefined?extra.delay:Math.random()*.4)+'s');
+    fw.appendChild(p);
+  }
+  for(let i=0;i<N1;i++) addP('p', 52+Math.random()*34, {});            /* 外环大粒子 */
+  for(let i=0;i<N2;i++) addP('p2', 60+Math.random()*26, {delay:.15});  /* 双色大光点 */
+  for(let i=0;i<N3;i++) addP('p3', 18+Math.random()*20, {delay:.45});  /* 内环白色碎星 */
+  for(let i=0;i<6;i++)  addP('p3', 78+Math.random()*18, {delay:.25});  /* 外圈白噪点 */
+  if(opt.gala){
+    fw.style.setProperty('--c','#FFD166');                             /* 金色满堂：双层金环 */
+    for(let i=0;i<14;i++) addP('g', 86+Math.random()*30, {delay:.35});
+    for(let i=0;i<10;i++) addP('g', 40+Math.random()*16, {delay:.7});
+  }
+  if(opt.name){
+    const chip=document.createElement('span');
+    chip.className='fw-name'+(opt.private?' lock':'');
+    chip.textContent = opt.private ? '🔒 '+opt.name : opt.name;
+    if(opt.onclick) chip.onclick = opt.onclick;
+    fw.appendChild(chip);
+  }
+  layer.appendChild(fw);
+  return fw;
+}
+document.querySelectorAll('.stars').forEach(el=>spawnStars(el,26));
+document.querySelectorAll('.confetti').forEach(el=>spawnConfetti(el,16));
+document.querySelectorAll('[data-skyline]').forEach(spawnSkyline);
+
+/* ---------- 零点倒计时 ---------- */
+function tick(){
+  const target = new Date('2027-01-01T00:00:00+08:00').getTime();
+  let ms = Math.max(0, target - Date.now());
+  const d = Math.floor(ms/864e5); ms -= d*864e5;
+  const h = String(Math.floor(ms/36e5)).padStart(2,'0'); ms -= h*36e5;
+  const m = String(Math.floor(ms/6e4)).padStart(2,'0');
+  const s = String(Math.floor(ms/1e3)%60).padStart(2,'0');
+  const txt = d+'天 '+h+':'+m+':'+s;
+  const a=document.getElementById('cd-invite'), b=document.getElementById('cd-show');
+  if(a) a.textContent = txt; if(b) b.textContent = txt;
+}
+tick(); setInterval(tick,1000);
+
+/* ---------- 答题 ---------- */
+function startQuiz(){
+  guestName = document.getElementById('guestName').value.trim() || '小鹿';
+  qIdx = 0; score = 0; myAnswers = [];
+  document.querySelectorAll('.rn').forEach(el=>el.textContent=guestName);
+  go('sc-quiz'); renderQ();
+}
+function renderQ(){
+  const q = QUESTIONS[qIdx];
+  document.getElementById('qidx').textContent = qIdx+1;
+  document.getElementById('qbar').style.width = (qIdx/10*100)+'%';
+  document.getElementById('qtext').textContent = q[0];
+  document.getElementById('optAt').textContent = q[1];
+  document.getElementById('optBt').textContent = q[2];
+  ['optA','optB'].forEach(id=>document.getElementById(id).classList.remove('sel'));
+}
+function pick(i){
+  const q = QUESTIONS[qIdx];
+  document.getElementById(i?'optB':'optA').classList.add('sel');
+  myAnswers[qIdx] = i;
+  if(q[3]===i) score++;
+  setTimeout(()=>{
+    qIdx++;
+    if(qIdx<10){ renderQ(); }
+    else{ document.getElementById('qbar').style.width='100%'; showResult(); }
+  },420);
+}
+function showResult(){
+  document.getElementById('scoreNum').textContent = score;
+  const R = score>=10 ? ['灵魂知己','你们之间大概装了读心术，满分烟花为你点亮'] :
+            score>=8  ? ['默契满分','你的烟花照亮了整片夜空，TA 一定很感动'] :
+            score>=6  ? ['老友认证','不错的默契！再加把劲就能爬到烟花顶端'] :
+            score>=4  ? ['有待补课','一半的题目答对啦，新的一年多和 TA 聊聊天'] :
+                        ['面基之交','没关系，烟花依然为你绽放，友谊从今天升级'];
+  document.getElementById('rankTitle').textContent = R[0];
+  document.getElementById('rankDesc').textContent = R[1];
+  go('sc-result');
+}
+function fireResult(){
+  const layer = document.getElementById('fw-result');
+  layer.innerHTML = '';
+  const gala = score>=8;
+  const badge = document.getElementById('galaBadge');
+  badge.classList.toggle('on', gala);
+  badge.textContent = gala ? '🎆 解锁「金色满堂」烟花 · 你在榜单顶端' : '答对 8 题以上可解锁「金色满堂」烟花';
+  const main = gala ? 'gold' : ['coral','pink','teal','violet'][Math.floor(Math.random()*4)];
+  makeFirework(layer, {x:112, y:52, color:main, once:true, count:18, scale:1.2, name:guestName, delay:0, gala:gala});
+  makeFirework(layer, {x:238, y:118, color: gala?'gold':'coral', once:true, count:12, scale:.65, delay:.5});
+  makeFirework(layer, {x:60,  y:170, color:'teal',  once:true, count:10, scale:.5,  delay:1.0});
+  setTimeout(()=>finale(3, 700, layer), 1600);
+}
+/* 终场烟花雨：在指定图层随机连放 n 朵 */
+function finale(n, gap, layerId){
+  const layer = layerId || document.getElementById('fw-show');
+  let i = 0;
+  const timer = setInterval(()=>{
+    const fw = makeFirework(layer, {
+      x: 30+Math.random()*230, y: 50+Math.random()*240,
+      color: ['gold','coral','pink','teal','violet'][Math.floor(Math.random()*5)],
+      once:true, count:12+Math.floor(Math.random()*8), scale:.5+Math.random()*.7
+    });
+    setTimeout(()=>fw.remove(), 2300);
+    if(++i>=n) clearInterval(timer);
+  }, gap);
+}
+/* 烟花秀页面：循环自动放烟花 + 点击夜空放烟花 */
+(function showLoop(){
+  const layer = document.getElementById('fw-show');
+  setInterval(()=>{
+    if(!document.getElementById('sc-show').classList.contains('on')) return;
+    const fw = makeFirework(layer, {
+      x: 20+Math.random()*240, y: 60+Math.random()*230,
+      color: ['gold','coral','pink','teal','violet'][Math.floor(Math.random()*5)],
+      count:12+Math.floor(Math.random()*8), scale:.55+Math.random()*.65
+    });
+    setTimeout(()=>fw.remove(), 5200);
+  }, 2100);
+  layer.addEventListener('click', e=>{
+    if(e.target!==layer) return;
+    const r = layer.getBoundingClientRect();
+    const fw = makeFirework(layer, {
+      x: e.clientX-r.left-80, y: e.clientY-r.top-80,
+      color: ['gold','coral','pink','teal','violet'][Math.floor(Math.random()*5)],
+      once:true, count:16, scale:.9+Math.random()*.4
+    });
+    setTimeout(()=>fw.remove(), 2300);
+  });
+})();
+function setPrivacy(v){
+  privacy = v;
+  document.getElementById('segPub').classList.toggle('on', v===0);
+  document.getElementById('segPriv').classList.toggle('on', v===1);
+}
+
+/* ---------- 答题报告 ---------- */
+function openReport(){
+  if(myAnswers.length<10){ toast('先完成答题哦～'); return; }
+  renderReport();
+  go('sc-report');
+}
+function renderReport(){
+  const list = document.getElementById('rpList');
+  document.getElementById('rpScore').textContent = score;
+  list.innerHTML = '';
+  if(myAnswers.length<10){
+    list.innerHTML = '<div class="rp"><div class="rq"><span>还没有完整的答题记录</span></div><div class="ra">完成一次答题后，这里会显示每一题的对错详情。</div></div>';
+    return;
+  }
+  QUESTIONS.forEach((q,i)=>{
+    const mine = myAnswers[i], right = q[3]===mine;
+    const item = document.createElement('div'); item.className='rp';
+    item.innerHTML =
+      '<div class="rq"><span>'+(i+1)+' · '+q[0]+'</span><span class="mk '+(right?'ok':'no')+'">'+(right?'✓':'✗')+'</span></div>'+
+      '<div class="ra">你的答案：<b>'+ (mine===0?'A':'B') +' · '+q[1+mine]+'</b><br>'+
+      (right ? '和 '+owner()+' 想的一样！' : owner()+' 的真实答案：B'.replace('B', q[3]===0?'A':'B') +' · '+q[1+q[3]]) +'</div>';
+    list.appendChild(item);
+  });
+  function owner(){ return document.getElementById('creatorName').value.trim() || '阿蓝'; }
+}
+function reAnswer(){ startQuiz(); }
+function submitNote(){
+  if(!document.getElementById('noteText').value.trim()){ toast('先写下你的祝福吧～'); return; }
+  toast(privacy ? '保密纸条已放入心愿瓶 🤫' : '公开纸条已放入心愿瓶！');
+  setTimeout(()=>go('sc-show'), 900);
+}
+
+/* ---------- 烟花秀纸条 ---------- */
+(function buildShow(){
+  const layer = document.getElementById('fw-show');
+  const pos = [[64,148],[188,96],[282,186],[146,286],[248,318]];
+  SHOW_NOTES.forEach((n,i)=>{
+    makeFirework(layer, {
+      x:pos[i][0], y:pos[i][1], color:n.color, count:14, cycle:'5.2s',
+      scale:(n.gala?1.05:.85)+Math.random()*.3, gala:!!n.gala,
+      name:n.name, private:!n.pub,
+      onclick:()=>{
+        document.getElementById('mTitle').textContent = n.pub ? n.name+' 的纸条' : '🤫 这是个秘密';
+        document.getElementById('mBody').textContent = n.pub ? n.msg : n.name+' 把祝福藏了起来，只有主人（'+creatorName()+'）零点开封心愿瓶时才能看见。';
+        document.getElementById('modal').classList.add('on');
+      }
+    });
+  });
+  function creatorName(){ return document.getElementById('creatorName').value.trim() || '阿蓝'; }
+})();
+
+/* ---------- init ---------- */
+const owner = document.getElementById('creatorName').value || '阿蓝';
+document.getElementById('inviteName').textContent = owner;
+document.getElementById('inviteName2').textContent = owner;
+document.getElementById('noteName').textContent = owner;
+const NAV = [['sc-create','1 创建'],['sc-invite','2 邀请页'],['sc-name','3 取昵称'],['sc-quiz','4 答题'],['sc-result','5 结果'],['sc-report','6 报告'],['sc-note','7 纸条'],['sc-show','8 烟花秀']];
+const nav = document.getElementById('nav');
+NAV.forEach(([t,label])=>{
+  const b=document.createElement('button'); b.textContent=label; b.dataset.t=t;
+  b.onclick=()=>{
+    if(t==='sc-report'){ openReport(); return; }
+    go(t);
+  };
+  nav.appendChild(b);
+});
+go('sc-invite');
+</script>
+</body>
+</html>
